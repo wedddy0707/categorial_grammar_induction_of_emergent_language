@@ -69,7 +69,6 @@ def main(argv: Sequence[str]):
         embed_size=len(COMMAND_ID),
         hidden_size=opts.hidden_size,
         cell=opts.cell,
-        dropout_p=opts.sender_encoder_dropout_p,
     )
     decoder = Decoder_REINFORCE(
         vocab_size=opts.vocab_size,
@@ -77,9 +76,9 @@ def main(argv: Sequence[str]):
         max_length=opts.max_len,
         hidden_size=opts.hidden_size,
         cell=opts.cell,
-        enable_attention=opts.sender_attention,
     )
-    sender = PlusOneWrapper(Agent(encoder, decoder))
+    decoder = PlusOneWrapper(decoder)
+    sender = Agent(encoder, decoder)
 
     ###################
     # Define Receiver #
@@ -90,7 +89,6 @@ def main(argv: Sequence[str]):
         embed_size=opts.embed_size,
         hidden_size=opts.hidden_size,
         cell=opts.cell,
-        dropout_p=opts.receiver_encoder_dropout_p,
     )
     decoder = Decoder_REINFORCE(
         vocab_size=len(COMMAND_ID),
@@ -98,7 +96,6 @@ def main(argv: Sequence[str]):
         max_length=max(map(len, df["command_ids"])),
         hidden_size=opts.hidden_size,
         cell=opts.cell,
-        enable_attention=opts.receiver_attention,
     )
     recver = Agent(encoder, decoder)
 
