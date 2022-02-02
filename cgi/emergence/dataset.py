@@ -47,7 +47,7 @@ def enumerate_command(
     ))
     tree_commands: Tuple[TreeCommand, ...] = tree_phrases
     for _ in range(max_n_conj):
-        tree_commands = tuple(itertools.product(
+        tree_commands = tree_commands + tuple(itertools.product(
             tree_phrases, tuple(itertools.product(CONJ_ATTR, tree_commands)),
         ))
     #################################
