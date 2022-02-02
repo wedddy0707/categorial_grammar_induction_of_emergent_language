@@ -22,7 +22,7 @@ class AskSender(core.Callback):
         freq: int = 1,
     ):
         assert isinstance(data, pd.DataFrame)
-        assert {"split", "command_ids" "command_tensor", "tree_command"} <= set(data)
+        assert {"split", "command_ids", "command_tensor", "tree_command"} <= set(data)
         self.data = data
         self.device = device
         self.freq = freq
