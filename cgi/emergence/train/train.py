@@ -93,7 +93,7 @@ def main(argv: Sequence[str]):
     decoder = Decoder_REINFORCE(
         vocab_size=len(COMMAND_ID),
         embed_size=len(COMMAND_ID),
-        max_length=max(map(len, df["command_ids"])),
+        max_length=max(map(len, df["command_ids"])) - 1,
         hidden_size=opts.hidden_size,
         cell=opts.cell,
     )
