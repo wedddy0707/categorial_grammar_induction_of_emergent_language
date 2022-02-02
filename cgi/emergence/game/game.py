@@ -38,20 +38,20 @@ class SingleGame(nn.Module):
         self.baseline: defaultdict[str, SimpleBaseline] = defaultdict(baseline_type)
         self.length_cost = length_cost
 
-    def __compute_effective_entropy(
+    def __compute_effective_value(
         self,
-        entropy: torch.Tensor,
+        origin: torch.Tensor,
         length: torch.Tensor,
     ):
-        batch_size = entropy.size(0)
-        device = entropy.device
-        effective_entropy = torch.zeros(batch_size, device=device)
+        batch_size, seq_len = origin.shape[:2]
+        device = origin.device
+        effective = torch.zeros(batch_size, device=device)
         not_eosed = torch.ones(batch_size, dtype=torch.bool, device=device)
-        for i in range(len(entropy.size(1))):
+        for i in range(seq_len):
             not_eosed = torch.logical_and(not_eosed, i < length)
-            effective_entropy = effective_entropy + entropy[:, i] * not_eosed.float()
-        effective_entropy = effective_entropy / length
-        return effective_entropy
+            effective = effective + origin[:, i] * not_eosed.float()
+        effective = effective / length
+        return effective
 
     def forward(
         self,
@@ -62,10 +62,15 @@ class SingleGame(nn.Module):
         sender_output, sender_logprob, sender_entropy = self.sender(sender_input)  # noqa: E501
         recver_output, recver_logprob, recver_entropy = self.recver(sender_output, recver_input)  # noqa: E501
 
-        logprob = sender_logprob + recver_logprob
+        sender_length = get_length(sender_output)
+        recver_length = get_length(recver_output)
+        logprob = (
+            self.__compute_effective_value(sender_logprob, sender_length).mean() +
+            self.__compute_effective_value(recver_logprob, recver_length).mean()
+        )
         entropy = (
-            self.__compute_effective_entropy(sender_entropy, get_length(sender_output)).mean() * self.sender_entr_coeff +
-            self.__compute_effective_entropy(recver_entropy, get_length(recver_output)).mean() * self.recver_entr_coeff
+            self.__compute_effective_value(sender_entropy, sender_length).mean() * self.sender_entr_coeff +
+            self.__compute_effective_value(recver_entropy, recver_length).mean() * self.recver_entr_coeff
         )
 
         loss, rest = self.loss(sender_input, sender_output,
