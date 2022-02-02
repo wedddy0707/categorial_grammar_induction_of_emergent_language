@@ -81,9 +81,7 @@ class SingleGame(nn.Module):
         policy_loss = (
             (loss.detach() - self.baseline['loss']()) * logprob).mean()
         optimized_loss = (
-            loss.mean() +
-            policy_loss +
-            entropy
+            loss.mean() + policy_loss - entropy
         )
 
         if self.training:
