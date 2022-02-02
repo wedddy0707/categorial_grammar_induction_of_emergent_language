@@ -1,0 +1,3 @@
+[submodule "EGG"]
+	path = EGG
+	url = https://github.com/facebookresearch/EGG.git
