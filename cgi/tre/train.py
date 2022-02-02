@@ -4,20 +4,10 @@ import sys
 from typing import Optional, Sequence
 
 from ..io import LogFile, make_logger
-from ..util import set_random_seed
+from ..util import set_random_seed, s2b
 from .tre import metrics_of_tre
 
 logger = make_logger('main')
-
-
-def s2b(s: str) -> bool:
-    if s.lower() in ('true', 't', 'yes', 'y', '1'):
-        return True
-    if s.lower() not in ('false', 'f', 'no', 'n', '0'):
-        logger.warning(
-            f'Unknown choice {s} for some boolean option. '
-            'Regard it as false.')
-    return False
 
 
 def get_params(
