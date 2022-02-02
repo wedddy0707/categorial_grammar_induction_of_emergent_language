@@ -1,6 +1,2 @@
-from .logger import (  # noqa: F401
-    make_logger
-)
-from .log_file_reader import (  # noqa: F401
-    LogFile,
-)
+from .log_file_reader import LogFile
+from .logger import make_logger
