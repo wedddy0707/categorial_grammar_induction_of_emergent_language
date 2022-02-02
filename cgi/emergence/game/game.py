@@ -42,6 +42,7 @@ class SingleGame(nn.Module):
         self,
         origin: torch.Tensor,
         length: torch.Tensor,
+        take_average: bool,
     ):
         batch_size, seq_len = origin.shape[:2]
         device = origin.device
@@ -50,7 +51,8 @@ class SingleGame(nn.Module):
         for i in range(seq_len):
             not_eosed = torch.logical_and(not_eosed, i < length)
             effective = effective + origin[:, i] * not_eosed.float()
-        effective = effective / length
+        if take_average:
+            effective = effective / length
         return effective
 
     def forward(
@@ -65,18 +67,16 @@ class SingleGame(nn.Module):
         sender_length = get_length(sender_output)
         recver_length = get_length(recver_output)
         logprob = (
-            self.__compute_effective_value(sender_logprob, sender_length).mean() +
-            self.__compute_effective_value(recver_logprob, recver_length).mean()
+            self.__compute_effective_value(sender_logprob, sender_length, take_average=False) +
+            self.__compute_effective_value(recver_logprob, recver_length, take_average=False)
         )
         entropy = (
-            self.__compute_effective_value(sender_entropy, sender_length).mean() * self.sender_entr_coeff +
-            self.__compute_effective_value(recver_entropy, recver_length).mean() * self.recver_entr_coeff
+            self.__compute_effective_value(sender_entropy, sender_length, take_average=True).mean() * self.sender_entr_coeff +
+            self.__compute_effective_value(recver_entropy, recver_length, take_average=True).mean() * self.recver_entr_coeff
         )
 
         loss, rest = self.loss(sender_input, sender_output,
                                recver_input, recver_output, label)
-
-        length = get_length(sender_output)
 
         policy_loss = (
             (loss.detach() - self.baseline['loss']()) * logprob).mean()
@@ -94,7 +94,7 @@ class SingleGame(nn.Module):
             'original_loss':  loss,
             'sender_entropy': sender_entropy,
             'recver_entropy': recver_entropy,
-            'mean_length':    length})
+            'mean_length':    sender_length})
         for k, v in rest.items():
             if isinstance(v, torch.Tensor):
                 rest[k] = v.float().mean().item()
