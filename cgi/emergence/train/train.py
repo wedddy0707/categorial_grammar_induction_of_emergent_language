@@ -53,8 +53,8 @@ def main(argv: Sequence[str]):
         random_seed=opts.random_seed,
     )
     assert {"command_tensor", "split"} <= set(df), set(df)
-    train_data: List[Tuple[torch.Tensor]] = [tuple(x,) for x in df[df["split"] == "train"]["command_tensor"]]
-    valid_data: List[Tuple[torch.Tensor]] = [tuple(x,) for x in df[df["split"] == "valid"]["command_tensor"]]
+    train_data: List[Tuple[torch.Tensor]] = [(x,) for x in df[df["split"] == "train"]["command_tensor"]]
+    valid_data: List[Tuple[torch.Tensor]] = [(x,) for x in df[df["split"] == "valid"]["command_tensor"]]
     logger.info('Making Data Loaders...')
     train_loader = DataLoader(train_data, batch_size=opts.batch_size, shuffle=True)
     valid_loader = DataLoader(valid_data, batch_size=opts.batch_size)
