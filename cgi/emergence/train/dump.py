@@ -5,10 +5,9 @@ def dump_params(opts: Dict[str, Any]):
     assert isinstance(opts, dict), opts
     excludes = [
         "mode",
-        "device",
     ]
     dump = {"mode": "config"}
     for k in opts.keys():
         if k not in excludes:
             dump[k] = opts[k]
-    print(json.dumps(dump))
+    print(json.dumps(dump, default=repr))
