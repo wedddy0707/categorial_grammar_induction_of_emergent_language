@@ -2,7 +2,7 @@ from typing import Sequence, Optional, List, Tuple
 import sys
 import argparse
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, RandomSampler
 
 import egg.core as core
 
@@ -56,7 +56,12 @@ def main(argv: Sequence[str]):
     train_data: List[Tuple[torch.Tensor]] = [(x,) for x in df[df["split"] == "train"]["command_tensor"]]
     valid_data: List[Tuple[torch.Tensor]] = [(x,) for x in df[df["split"] == "valid"]["command_tensor"]]
     logger.info('Making Data Loaders...')
-    train_loader = DataLoader(train_data, batch_size=opts.batch_size, shuffle=True)
+    train_sampler = RandomSampler(
+        train_data,
+        replacement=True,
+        num_samples=opts.batch_size * opts.batches_per_epoch,
+    )
+    train_loader = DataLoader(train_data, batch_size=opts.batch_size, sampler=train_sampler)
     valid_loader = DataLoader(valid_data, batch_size=opts.batch_size)
 
     logger.info('Initializing Agents...')
