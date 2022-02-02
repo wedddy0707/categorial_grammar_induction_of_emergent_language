@@ -25,10 +25,6 @@ class Agent(nn.Module):
         ###############
         # Constraints #
         ###############
-        assert hasattr(encoder, 'reset_parameters')
-        assert hasattr(decoder, 'reset_parameters')
-        assert hasattr(encoder, 'reborn')
-        assert hasattr(decoder, 'reborn')
         assert hasattr(encoder, 'isLSTM')
         ##################
         # Initialization #
@@ -36,20 +32,6 @@ class Agent(nn.Module):
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
-
-    def reset_parameters(self):
-        self.encoder.reset_parameters()
-        self.decoder.reset_parameters()
-
-    def reborn(self):
-        new_encoder = self.encoder.reborn()
-        new_decoder = self.decoder.reborn()
-        return self.__class__(new_encoder, new_decoder)
-
-    def copy(self):
-        new_encoder = self.encoder.copy()
-        new_decoder = self.decoder.copy()
-        return self.__class__(new_encoder, new_decoder)
 
     def forward(
         self,
