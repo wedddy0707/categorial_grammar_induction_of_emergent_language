@@ -13,6 +13,21 @@ from ...io import make_logger
 from ..msg import get_length
 from .baseline import SimpleBaseline
 
+def compute_effective_value(
+    origin: torch.Tensor,
+    length: torch.Tensor,
+    take_average: bool,
+):
+    batch_size, seq_len = origin.shape[:2]
+    device = origin.device
+    effective = torch.zeros(batch_size, device=device)
+    not_eosed = torch.ones(batch_size, dtype=torch.bool, device=device)
+    for i in range(seq_len):
+        not_eosed = torch.logical_and(not_eosed, i < length)
+        effective = effective + origin[:, i] * not_eosed.float()
+    if take_average:
+        effective = effective / length
+    return effective
 
 class SingleGame(nn.Module):
     def __init__(
@@ -38,23 +53,6 @@ class SingleGame(nn.Module):
         self.baseline: defaultdict[str, SimpleBaseline] = defaultdict(baseline_type)
         self.length_cost = length_cost
 
-    def __compute_effective_value(
-        self,
-        origin: torch.Tensor,
-        length: torch.Tensor,
-        take_average: bool,
-    ):
-        batch_size, seq_len = origin.shape[:2]
-        device = origin.device
-        effective = torch.zeros(batch_size, device=device)
-        not_eosed = torch.ones(batch_size, dtype=torch.bool, device=device)
-        for i in range(seq_len):
-            not_eosed = torch.logical_and(not_eosed, i < length)
-            effective = effective + origin[:, i] * not_eosed.float()
-        if take_average:
-            effective = effective / length
-        return effective
-
     def forward(
         self,
         sender_input: torch.LongTensor,
@@ -67,12 +65,12 @@ class SingleGame(nn.Module):
         sender_length = get_length(sender_output)
         recver_length = get_length(recver_output)
         logprob = (
-            self.__compute_effective_value(sender_logprob, sender_length, take_average=False) +
-            self.__compute_effective_value(recver_logprob, recver_length, take_average=False)
+            compute_effective_value(sender_logprob, sender_length, take_average=False) +
+            compute_effective_value(recver_logprob, recver_length, take_average=False)
         )
         entropy = (
-            self.__compute_effective_value(sender_entropy, sender_length, take_average=True).mean() * self.sender_entr_coeff +
-            self.__compute_effective_value(recver_entropy, recver_length, take_average=True).mean() * self.recver_entr_coeff
+            compute_effective_value(sender_entropy, sender_length, take_average=True).mean() * self.sender_entr_coeff +
+            compute_effective_value(recver_entropy, recver_length, take_average=True).mean() * self.recver_entr_coeff
         )
 
         loss, rest = self.loss(sender_input, sender_output,
@@ -88,11 +86,13 @@ class SingleGame(nn.Module):
             self.baseline['loss'].update(loss)
 
         rest.update({
-            'loss':           optimized_loss,
-            'original_loss':  loss,
-            'sender_entropy': sender_entropy,
-            'recver_entropy': recver_entropy,
-            'mean_length':    sender_length})
+            'loss':               optimized_loss,
+            'original_loss':      loss,
+            'sender_entropy':     sender_entropy,
+            'recver_entropy':     recver_entropy,
+            'sender_mean_length': sender_length,
+            'recver_mean_length': recver_length,
+        })
         for k, v in rest.items():
             if isinstance(v, torch.Tensor):
                 rest[k] = v.float().mean().item()
