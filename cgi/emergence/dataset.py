@@ -1,10 +1,7 @@
-from typing import Sequence, Tuple, Any, Union, Callable
+from typing import Sequence, Tuple, Any, Union
 import pandas as pd
 import itertools
 import torch
-from torch.nn.functional import one_hot
-
-one_hot: Callable[..., torch.Tensor]
 
 VERB_ATTR = ("look", "jump", "walk", "run")
 DIRE_ATTR = ("up", "down", "left", "right")
@@ -66,7 +63,7 @@ def enumerate_command(
         lambda x: (x + (0,) * maxlen_com_ids)[:maxlen_com_ids], command_ids
     ))
     command_tensors: Tuple[torch.Tensor, ...] = tuple(map(
-        lambda x: one_hot(torch.as_tensor(x, dtype=torch.long), num_classes=len(COMMAND_ID)), command_ids
+        lambda x: torch.as_tensor(x, dtype=torch.long), command_ids
     ))
     ##################
     # make dataframe #
