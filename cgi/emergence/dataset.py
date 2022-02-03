@@ -1,7 +1,8 @@
-from typing import Sequence, Tuple, Any, Union
+from typing import Sequence, Tuple, Any, Union, List
 import pandas as pd
 import itertools
 import torch
+from torch.utils.data import Dataset
 
 VERB_ATTR = ("look", "jump", "walk", "run")
 DIRE_ATTR = ("up", "down", "left", "right")
@@ -82,3 +83,19 @@ def enumerate_command(
     n_train_samples = len(df) - n_valid_samples
     df["split"] = [train_split_label] * n_train_samples + [valid_split_label] * n_valid_samples
     return df
+
+
+class CommandDataset(Dataset[Tuple[torch.Tensor]]):
+    def __init__(
+        self,
+        df: pd.DataFrame,
+    ) -> None:
+        super().__init__()
+        self.df = df
+        self.data: List[torch.Tensor] = self.df["command_tensor"].tolist()
+    
+    def __len__(self):
+        return len(self.data)
+    
+    def __getitem__(self, index: int):
+        return (self.data[index],)
