@@ -87,6 +87,7 @@ def main(argv: Sequence[str]):
         max_length=opts.max_len,
         hidden_size=opts.hidden_size,
         cell=opts.cell,
+        enable_attention=opts.enable_sender_attention,
     )
     decoder = PlusOneWrapper(decoder)
     sender = Agent(encoder, decoder)
@@ -107,6 +108,7 @@ def main(argv: Sequence[str]):
         max_length=max(map(len, df["command_ids"])) - 1,
         hidden_size=opts.hidden_size,
         cell=opts.cell,
+        enable_attention=opts.enable_receiver_attention,
     )
     recver = Agent(encoder, decoder)
 
