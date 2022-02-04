@@ -117,3 +117,19 @@ class DumpCorpus(AskSender):
                     if k in ('message', 'acc', 'loss')},
             }
         print(json.dumps(output).replace(' ', ''), flush=True)
+
+
+class Evaluator(AskSender):
+    def dump(self):
+        data: pd.DataFrame = pd.DataFrame(self.ask_sender())
+        output = {
+            "mode": "evaluation",
+            "epoch": self.epoch_counter,
+            "train_acc": data[data["split"] == "train"]["acc"].mean(),
+            "train_loss": data[data["split"] == "train"]["loss"].mean(),
+            "valid_acc": data[data["split"] == "valid"]["acc"].mean(),
+            "valid_loss": data[data["split"] == "valid"]["loss"].mean(),
+            "test_acc": data[data["split"] == "test"]["acc"].mean(),
+            "test_loss": data[data["split"] == "test"]["loss"].mean(),
+        }
+        print(json.dumps(output), flush=True)

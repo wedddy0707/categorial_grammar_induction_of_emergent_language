@@ -18,7 +18,7 @@ from ..dataset import enumerate_command
 from ..dataset import CommandDataset
 from .common_params import get_common_params
 from .dump import dump_params
-from .intervene import DumpCorpus, Metrics
+from .intervene import DumpCorpus, Metrics, Evaluator
 
 
 def get_params(
@@ -145,6 +145,7 @@ def main(argv: Sequence[str]):
     callbacks: List[core.Callback] = [
         Metrics(df, opts.device, freq=0),
         DumpCorpus(df, opts.device, freq=0),
+        Evaluator(df, device=opts.device, freq=0),
         core.ConsoleLogger(as_json=True, print_train_loss=True),
         core.EarlyStopperAccuracy(opts.early_stopping_thr),
     ]
