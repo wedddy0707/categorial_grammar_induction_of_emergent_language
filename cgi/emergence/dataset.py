@@ -18,8 +18,10 @@ COMMAND_ID = dict((y, x) for x, y in enumerate(
 ))
 assert COMMAND_ID['eos'] == 0
 
+
 def command_to_command_ids(x: Sequence[str]):
     return tuple(COMMAND_ID[e] for e in x)
+
 
 def flatten_nested_tuple(x: Union[Tuple[Any, ...], str]) -> Tuple[str, ...]:
     if isinstance(x, tuple):
@@ -27,19 +29,29 @@ def flatten_nested_tuple(x: Union[Tuple[Any, ...], str]) -> Tuple[str, ...]:
     else:
         return (x,)
 
+
 Phrase = Tuple[Tuple[str, str], str]
 TreeCommand = Union[
     Phrase,
     Tuple[Phrase, "TreeCommand"],
 ]
 
+
 def enumerate_command(
     max_n_conj: int,
+    valid_p: float,
+    test_p: float,
     random_seed: int = 1,
-    valid_p: float = 0.5,
     train_split_label: str = "train",
     valid_split_label: str = "valid",
+    test_split_label: str = "test",
 ) -> pd.DataFrame:
+    ###############
+    # Constraints #
+    ###############
+    assert valid_p >= 0
+    assert test_p >= 0
+    assert valid_p + test_p < 1
     ##############################################
     # begin with making tree structured commands #
     ##############################################
@@ -80,8 +92,13 @@ def enumerate_command(
     #####################
     df: pd.DataFrame = df.sample(frac=1, random_state=random_seed).reset_index(drop=True)
     n_valid_samples = int(len(df) * valid_p)
-    n_train_samples = len(df) - n_valid_samples
-    df["split"] = [train_split_label] * n_train_samples + [valid_split_label] * n_valid_samples
+    n_test_samples = int(len(df) * valid_p)
+    n_train_samples = len(df) - n_valid_samples - n_test_samples
+    df["split"] = (
+        [train_split_label] * n_train_samples +
+        [valid_split_label] * n_valid_samples +
+        [test_split_label] * n_test_samples
+    )
     return df
 
 
@@ -93,9 +110,9 @@ class CommandDataset(Dataset[Tuple[torch.Tensor]]):
         super().__init__()
         self.df = df
         self.data: List[torch.Tensor] = self.df["command_tensor"].tolist()
-    
+
     def __len__(self):
         return len(self.data)
-    
+
     def __getitem__(self, index: int):
         return (self.data[index],)

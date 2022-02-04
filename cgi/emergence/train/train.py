@@ -20,6 +20,7 @@ from .common_params import get_common_params
 from .dump import dump_params
 from .intervene import DumpCorpus, Metrics
 
+
 def get_params(
     params: Sequence[str],
     parser: Optional[argparse.ArgumentParser] = None,
@@ -28,6 +29,7 @@ def get_params(
         parser = argparse.ArgumentParser()
     args = get_common_params(params, parser)
     return args
+
 
 class PlusOneWrapper(torch.nn.Module):
     def __init__(self, wrapped: torch.nn.Module):
@@ -44,6 +46,7 @@ class PlusOneWrapper(torch.nn.Module):
         r3 = r3[:, :-1]
         return r1 + 1, r2, r3
 
+
 def main(argv: Sequence[str]):
     logger = make_logger('main')
     logger.info('logger initialized')
@@ -54,21 +57,26 @@ def main(argv: Sequence[str]):
     logger.info('Making Datasets...')
     df = enumerate_command(
         opts.max_n_conj,
+        opts.valid_p,
+        opts.test_p,
         random_seed=opts.random_seed,
     )
     assert {"command_tensor", "split"} <= set(df), set(df)
     train_split: pd.DataFrame = df[df["split"] == "train"]
     valid_split: pd.DataFrame = df[df["split"] == "valid"]
+    test_split: pd.DataFrame = df[df["split"] == "test"]
     train_data: CommandDataset = CommandDataset(train_split)
     valid_data: CommandDataset = CommandDataset(valid_split)
+    test_data: CommandDataset = CommandDataset(test_split)
     logger.info('Making Data Loaders...')
     train_sampler = RandomSampler(
         train_data,
         replacement=True,
         num_samples=(opts.batch_size * opts.batches_per_epoch),
     )
-    train_loader = DataLoader(train_data, batch_size=opts.batch_size, sampler=train_sampler)
-    valid_loader = DataLoader(valid_data, batch_size=opts.batch_size)
+    train_loader: DataLoader[Tuple[torch.Tensor]] = DataLoader(train_data, batch_size=opts.batch_size, sampler=train_sampler)
+    valid_loader: DataLoader[Tuple[torch.Tensor]] = DataLoader(valid_data, batch_size=opts.batch_size)
+    test_loader: DataLoader[Tuple[torch.Tensor]] = DataLoader(test_data, batch_size=opts.batch_size)
 
     logger.info('Initializing Agents...')
     #################

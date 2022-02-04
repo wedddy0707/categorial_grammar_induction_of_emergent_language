@@ -1,6 +1,6 @@
 import time
 from collections import defaultdict
-from typing import Any, List, Literal, Optional
+from typing import Any, List, Literal
 
 import pandas as pd
 
@@ -12,29 +12,19 @@ from .train import Dataset, test, train
 logger = make_logger(__name__)
 
 
-def calc_f_score(p: Optional[float], r: float):
-    if p is None:
-        f = None
-    elif p + r == 0:
-        f = 0
-    else:
-        f = 2 * p * r / (p + r)
-    return f
-
-
 def metrics_of_induced_categorial_grammar(
     corpus: pd.DataFrame,
     learning_target: Literal['input', 'emergent', 'shuffled', 'adjacent_swapped', 'random'] = 'emergent',  # noqa: E501
-    swap_count:            int = 1,
-    n_epochs:              int = 100,
-    n_trains:              int = 1,
-    lr:                  float = 0.1,
-    c:                   float = 0.0,
-    vocab_size:            int = 1,
-    use_tqdm:             bool = False,
-    show_train_progress:  bool = False,
-    show_lexicon:         bool = False,
-    show_parses:          bool = False,
+    swap_count: int = 1,
+    n_epochs: int = 100,
+    n_trains: int = 1,
+    lr: float = 0.1,
+    c: float = 0.0,
+    vocab_size: int = 1,
+    use_tqdm: bool = False,
+    show_train_progress: bool = False,
+    show_lexicon: bool = False,
+    show_parses: bool = False,
 ):
     start_time = time.time()
     ##############
@@ -51,8 +41,10 @@ def metrics_of_induced_categorial_grammar(
     # dataset
     train_split = corpus[corpus['split'] == 'train']
     valid_split = corpus[corpus['split'] == 'valid']
+    test_split = corpus[corpus['split'] == 'test']
     train_dataset: Dataset = tuple(zip(train_split['sentence'], train_split['logical_form'], train_split['input']))
     valid_dataset: Dataset = tuple(zip(valid_split['sentence'], valid_split['logical_form'], valid_split['input']))
+    test_dataset: Dataset = tuple(zip(test_split['sentence'], test_split['logical_form'], test_split['input']))
 
     metric: 'defaultdict[str, List[Any]]' = defaultdict(list)
     # keys for metric
@@ -63,10 +55,13 @@ def metrics_of_induced_categorial_grammar(
         suffix += f'_{vocab_size}'
     TRAIN_PRECISION = f'train_precision_icg_{suffix}'
     TRAIN_RECALL = f'train_recall_icg_{suffix}'
-    TRAIN_FSCORE = f'train_fscore_icg_{suffix}'
+    TRAIN_F1SCORE = f'train_f1score_icg_{suffix}'
+    VALID_PRECISION = f'test_precision_icg_{suffix}'
+    VALID_RECALL = f'test_recall_icg_{suffix}'
+    VALID_F1SCORE = f'test_f1score_icg_{suffix}'
     TEST_PRECISION = f'test_precision_icg_{suffix}'
     TEST_RECALL = f'test_recall_icg_{suffix}'
-    TEST_FSCORE = f'test_fscore_icg_{suffix}'
+    TEST_F1SCORE = f'test_f1score_icg_{suffix}'
     LEXICON_SIZE = f'lexicon_size_icg_{suffix}'
     CGF = f"CGF_{suffix}"
     CGL = f"CGL_{suffix}"
@@ -85,10 +80,12 @@ def metrics_of_induced_categorial_grammar(
         ########
         # Test #
         ########
-        train_precision, train_recall, train_parses = test(
+        train_precision, train_recall, train_f1, train_parses = test(
             parser, train_dataset)
-        valid_precision, valid_recall, valid_parses = test(
+        valid_precision, valid_recall, valid_f1, valid_parses = test(
             parser, valid_dataset)
+        test_precision, test_recall, test_f1, train_parses = test(
+            parser, test_dataset)
         ######################
         # Some visualization #
         ######################
@@ -108,17 +105,23 @@ def metrics_of_induced_categorial_grammar(
         ###########
         # Metrics #
         ###########
-        train_f = calc_f_score(train_precision, train_recall)
-        valid_f = calc_f_score(valid_precision, valid_recall)
         lexicon_size = len(parser.lexicon)
+        # TRAIN SCORE
         metric[TRAIN_PRECISION].append(train_precision)
         metric[TRAIN_RECALL].append(train_recall)
-        metric[TRAIN_FSCORE].append(train_f)
-        metric[TEST_PRECISION].append(valid_precision)
-        metric[TEST_RECALL].append(valid_recall)
-        metric[TEST_FSCORE].append(valid_f)
+        metric[TRAIN_F1SCORE].append(train_f1)
+        # VALIDATION SCORE
+        metric[VALID_PRECISION].append(valid_precision)
+        metric[VALID_RECALL].append(valid_recall)
+        metric[VALID_F1SCORE].append(valid_f1)
+        # TEST SCORE
+        metric[TEST_PRECISION].append(test_precision)
+        metric[TEST_RECALL].append(test_recall)
+        metric[TEST_F1SCORE].append(test_f1)
+        # LEXICON SIZE
         metric[LEXICON_SIZE].append(lexicon_size)
-        metric[CGF].append(valid_f)
+        # CGF & CGL
+        metric[CGF].append(test_f1)
         metric[CGL].append(lexicon_size)
     end_time = time.time()
     logger.info(f'processing time: {end_time - start_time}')

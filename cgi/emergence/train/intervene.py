@@ -10,10 +10,11 @@ import egg.core as core
 
 from ..msg import get_mask
 
+
 class AskSender(core.Callback):
-    data:   pd.DataFrame
+    data: pd.DataFrame
     device: torch.device
-    freq:   int
+    freq: int
 
     def __init__(
         self,
@@ -30,7 +31,7 @@ class AskSender(core.Callback):
     def on_train_begin(self, trainer_instance: Any):
         self.trainer = trainer_instance
         self.epoch_counter = self.trainer.start_epoch
-    
+
     def on_train_end(self):
         self.dump()
 
@@ -51,10 +52,12 @@ class AskSender(core.Callback):
                 input_s = torch.stack([sample.command_tensor.to(self.device)])
                 output_s = game.sender(input_s)[0]
                 output_r = game.recver(output_s)[0]
-                acc = game.loss(
-                    input_s, output_s, None, output_r, None)[1]['acc'].item()
+                loss, rest = game.loss(
+                    input_s, output_s, None, output_r, None)
+                acc = rest["acc"]
                 output_s = output_s * get_mask(output_s)
-                data["acc"].append(acc)
+                data["acc"].append(acc.item())
+                data["loss"].append(loss.item())
                 data["input"].append(sample.command_ids)
                 data["message"].append(output_s.tolist()[0])
                 data["meaning"].append(sample.tree_command)
@@ -80,8 +83,8 @@ class Metrics(AskSender):
                 ipt_dist.append(editdistance.eval(self.cut_eos(ipt[i]), self.cut_eos(ipt[j])))
         topsim: float = spearmanr(msg_dist, ipt_dist).correlation
         output = {
-            'mode':   'metric',
-            'epoch':  self.epoch_counter,
+            'mode': 'metric',
+            'epoch': self.epoch_counter,
             'topsim': topsim,
         }
         print(json.dumps(output), flush=True)
@@ -91,7 +94,7 @@ class DumpCorpus(AskSender):
     def on_train_begin(self, trainer_instance: Any):
         super().on_train_begin(trainer_instance)
         self.dump(mode="dataset")
-    
+
     def dump(
         self,
         mode: Literal["dataset", "language"] = "language",
@@ -111,6 +114,6 @@ class DumpCorpus(AskSender):
                 'epoch': self.epoch_counter,
                 'data': {
                     k: v for k, v in data.items()
-                    if k in ('message', 'acc')},
+                    if k in ('message', 'acc', 'loss')},
             }
         print(json.dumps(output).replace(' ', ''), flush=True)

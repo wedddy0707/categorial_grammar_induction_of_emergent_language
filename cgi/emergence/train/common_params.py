@@ -4,6 +4,7 @@ import egg.core as core
 
 from ...util import s2b
 
+
 def get_common_params(
     params: Sequence[str],
     parser: Optional[argparse.ArgumentParser] = None,
@@ -20,6 +21,9 @@ def get_common_params(
     parser.add_argument('--receiver_entropy_coeff', type=float, default=1e-1)
     # length cost
     parser.add_argument('--length_cost', type=float, default=0.0)
+    # data split
+    parser.add_argument('--valid_p', type=float, default=0.25)
+    parser.add_argument('--test_p', type=float, default=0.25)
     ##############################
     # hyper-parameters of models #
     ##############################

@@ -3,6 +3,7 @@ import json
 import logging
 import random
 import time
+import copy
 from collections import Counter, defaultdict
 from typing import (Any, Dict, Hashable, Iterable, List, Optional, Sequence,
                     Set, Tuple)
@@ -117,14 +118,24 @@ def make_init_param_factory(
     return init_param_factory
 
 
+def compute_f1_score(p: Optional[float], r: float):
+    if p is None:
+        f = None
+    elif p + r == 0:
+        f = 0
+    else:
+        f = 2 * p * r / (p + r)
+    return f
+
+
 def train(
     train_dataset: Dataset,
     valid_dataset: Dataset,
-    n_epochs:      int = 100,
-    lr:            float = 0.1,
-    c:             float = 0,
-    beam_size:     Optional[int] = 10,
-    use_tqdm:      bool = False,
+    n_epochs: int = 100,
+    lr: float = 0.1,
+    c: float = 0,
+    beam_size: Optional[int] = 10,
+    use_tqdm: bool = False,
     show_progress: bool = False,
 ):
     logging_level = logger.level
@@ -155,6 +166,8 @@ def train(
     # Training #
     ############
     logger.info('start training')
+    best_validation_fscore = 0
+    best_parser = copy.deepcopy(parser)
     for epoch in range(1, n_epochs + 1):
         logger.info(
             f'Lexicon size is {len(parser.lexicon)} '
@@ -195,26 +208,22 @@ def train(
         # Accuracy Calculation #
         ########################
         times.append(time.time())
-        trn_p, trn_r = test(parser, train_dataset, beam_size=beam_size)[:2]
-        vld_p, vld_r = test(parser, valid_dataset, beam_size=beam_size)[:2]
+        trn_p, trn_r, trn_f = test(parser, train_dataset, beam_size=beam_size)[:3]
+        vld_p, vld_r, vld_f = test(parser, valid_dataset, beam_size=beam_size)[:3]
         times.append(time.time())
-        size = len(parser.lexicon)
-        try:
-            coarseness = sum(e.sem.n_nodes() for e in parser.lexicon) / size
-            word_length = sum(len(e.pho) for e in parser.lexicon) / size
-        except ZeroDivisionError:
-            coarseness = None
-            word_length = None
+        if vld_f is not None and vld_f > best_validation_fscore:
+            best_validation_fscore = vld_f
+            best_parser = copy.deepcopy(parser)
         logger.info(json.dumps({
             'mode': 'train',
             'epoch': epoch,
             'trn-p': trn_p,
             'trn-r': trn_r,
+            'trn-f': trn_f,
             'vld-p': vld_p,
             'vld-r': vld_r,
-            'size':  size,
-            'coarseness': coarseness,
-            'word_length': word_length,
+            'vld-f': vld_f,
+            'size': len(parser.lexicon),
             '#new lexicon': len(parser.lexicon - old_lexicon),
             '#old lexicon': len(old_lexicon - parser.lexicon),
             'times': [round(y - x, 4) for x, y in zip(times[:-1], times[1:])],  # noqa: E501
@@ -223,20 +232,20 @@ def train(
     # make prior distribution over sentences #
     ##########################################
     logger.info('make prior distribution over sentences')
-    parser.unigram = Counter(
+    best_parser.unigram = Counter(
         itertools.chain.from_iterable(msg for msg, _, _ in train_dataset))
 
     logger.setLevel(logging_level)
-    return parser
+    return best_parser
 
 
 def test(
-    parser:    LogLinearCCG,
-    dataset:   Dataset,
+    parser: LogLinearCCG,
+    dataset: Dataset,
     beam_size: Optional[int] = 25,
-    use_tqdm:  bool = False,
+    use_tqdm: bool = False,
 ):
-    are_parsed:  List[int] = []
+    are_parsed: List[int] = []
     are_correct: List[int] = []
     visualized_top_score_parses: List[str] = []
     pbar: Iterable[Tuple[Sentence, Sem, Any]] = tqdm(
@@ -272,4 +281,9 @@ def test(
         precision = None
     recall = sum(are_correct) / len(are_correct)
 
-    return precision, recall, visualized_top_score_parses
+    return (
+        precision,
+        recall,
+        compute_f1_score(precision, recall),
+        visualized_top_score_parses,
+    )
