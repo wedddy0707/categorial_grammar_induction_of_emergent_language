@@ -1,9 +1,7 @@
-from typing import (
-    Literal,
-    Sequence,
-)
-import pandas as pd
 import random
+from typing import Literal, Sequence
+
+import pandas as pd
 
 
 def eos_remover(x: Sequence[int]):
@@ -23,14 +21,12 @@ def basic_preprocess_of_corpus_df(
         'adjacent_swapped',
         'random'
     ] = 'emergent',
-    swap_count:  int = 1,
-    vocab_size:  int = 1,
+    swap_count: int = 1,
+    vocab_size: int = 1,
 ) -> pd.DataFrame:
-    assert 'message' in corpus
-    assert 'meaning' in corpus
-    assert 'input' in corpus
-    assert 'split' in corpus
-    assert learning_target != 'random' or vocab_size > 1
+    assert {"message", "meaning", "input", "split"} <= set(corpus)
+    if learning_target == "random":
+        assert vocab_size > 1
 
     def adjacent_swapper(
         x: Sequence[int],
