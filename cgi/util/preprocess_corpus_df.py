@@ -5,7 +5,7 @@ import pandas as pd
 
 
 def eos_remover(x: Sequence[int]):
-    return tuple(x[:x.index(0)])
+    return tuple(x[:x.index(0) if (0 in x) else None])
 
 
 def shuffler(x: Sequence[int]):
