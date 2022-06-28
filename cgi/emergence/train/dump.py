@@ -1,6 +1,7 @@
 from typing import Dict, Any
 import json
 
+
 def dump_params(opts: Dict[str, Any]):
     assert isinstance(opts, dict), opts
     excludes = [

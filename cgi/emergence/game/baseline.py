@@ -1,6 +1,10 @@
 import torch
 
+
 class SimpleBaseline:
+    baseline: float
+    count: int
+
     def __init__(self):
         self.baseline = 0.0
         self.count = 0

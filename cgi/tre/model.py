@@ -1,17 +1,17 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Literal
 
 import torch
 import torch.nn as nn
 
-MeaningTensor = Union[Tuple['MeaningTensor', 'MeaningTensor'], torch.LongTensor]  # noqa: E501
+MeaningTensor = Union[Tuple["MeaningTensor", "MeaningTensor"], torch.Tensor]
 
 
 class Composer(nn.Module):
     def __init__(
         self,
-        input_vocab_size:  int,
+        input_vocab_size: int,
         output_vocab_size: int,
-        output_len:        int,
+        output_len: int,
     ):
         super().__init__()
         self.input_vocab_size = input_vocab_size
@@ -25,23 +25,33 @@ class Composer(nn.Module):
 
     def forward(self, x: MeaningTensor) -> torch.Tensor:
         if isinstance(x, torch.LongTensor):
-            return self.emb(x).view(
-                self.output_vocab_size, self.output_len)
+            return self.emb(x).view(self.output_vocab_size, self.output_len)
         else:
-            return (
-                self.lproj(self.forward(x[0])) +
-                self.rproj(self.forward(x[1])))
+            return self.lproj(self.forward(x[0])) + self.rproj(self.forward(x[1]))
 
 
 class Objective(nn.Module):
-    def __init__(self, composer: 'Composer'):
+    composer: Composer
+    error_fn: Literal["L1-distance", "cross_entropy"]
+
+    def __init__(
+        self,
+        composer: Composer,
+        error_fn: Literal["L1-distance", "cross_entropy"] = "L1-distance",
+    ):
         super().__init__()
         self.composer = composer
+        self.error_fn = error_fn
 
     def forward(
         self,
         input: MeaningTensor,
-        target: torch.LongTensor
+        target: torch.Tensor
     ) -> torch.Tensor:
         composed = self.composer(input)
-        return torch.abs(composed - target).sum()
+        if self.error_fn == "L1-distance":
+            error = torch.abs(composed - target).sum()
+        else:
+            raise NotImplementedError
+
+        return error

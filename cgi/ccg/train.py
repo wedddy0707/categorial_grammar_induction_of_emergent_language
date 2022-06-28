@@ -68,10 +68,7 @@ class InitParamFactory:
             log_sem_count = np.log2(sum(
                 cooccur[p, c] for p, c in cooccur.keys() if c == cnst))
             pmis.append(
-                np.log2(cooccur[pho, cnst]) -
-                log_pho_count -
-                log_sem_count +
-                log_all_count
+                np.log2(cooccur[pho, cnst]) - log_pho_count - log_sem_count + log_all_count
             )
         return float(np.average(pmis)) * self.scale
 
@@ -109,10 +106,7 @@ def make_init_param_factory(
             log_sem_count = np.log2(sum(
                 cooccur[p, c] for p, c in cooccur.keys() if c == cnst))
             pmis.append(
-                np.log2(cooccur[pho, cnst]) -
-                log_pho_count -
-                log_sem_count +
-                log_all_count
+                np.log2(cooccur[pho, cnst]) - log_pho_count - log_sem_count + log_all_count
             )
         return float(np.average(pmis)) * scale
     return init_param_factory

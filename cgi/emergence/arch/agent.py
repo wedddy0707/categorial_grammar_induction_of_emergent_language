@@ -44,4 +44,5 @@ class Agent(nn.Module):
         return self.decoder(
             encoder_hs,
             last_encoder_h,
-            decoder_input)
+            decoder_input,
+        )

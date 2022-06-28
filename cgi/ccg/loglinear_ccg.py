@@ -5,6 +5,7 @@ from typing import (Callable, Dict, Hashable, List, Optional, Sequence, Set,
                     Tuple, Union)
 
 import numpy as np
+import numpy.typing as npt
 
 from .cell import Derivation
 from .lexitem import BasicCat, LexItem, Sem
@@ -19,14 +20,14 @@ class NoCorrectDerivationObtained(Exception):
 
 
 def np_softmax(
-    x: np.ndarray,
+    x: npt.NDArray[np.float_],
     return_empty_if_empty: bool = True
-) -> np.ndarray:
+) -> npt.NDArray[np.float_]:
     if x.size == 0 and return_empty_if_empty:
-        return np.array([])
-    c = np.max(x)
-    e = np.exp(x - c)
-    s = np.sum(e)
+        return x
+    c: npt.NDArray[np.float_] = np.max(x)
+    e: npt.NDArray[np.float_] = np.exp(x - c)
+    s: npt.NDArray[np.float_] = np.sum(e)
     return e / s
 
 
@@ -45,23 +46,23 @@ class defaultdict_for_param(Dict[LexItem, float]):
 
 
 class LogLinearCCG:
-    lr:                  float
-    c:                   float
-    init_param:          float
-    step:                int
-    max_word_len:        int
-    params:              'defaultdict_for_param'
-    grad:                'defaultdict[LexItem, float]'
-    __lexicon:           Lexicon
-    __pho_to_lexicon:    'defaultdict[Tuple[Hashable, ...], Set[Derivation]]'  # noqa: E501
-    __unigram:           'defaultdict[Hashable, float]'
-    derivations:         List[Derivation]
+    lr: float
+    c: float
+    init_param: float
+    step: int
+    max_word_len: int
+    params: defaultdict_for_param
+    grad: "defaultdict[LexItem, float]"
+    __lexicon: Lexicon
+    __pho_to_lexicon: "defaultdict[Tuple[Hashable, ...], Set[Derivation]]"
+    __unigram: "defaultdict[Hashable, float]"
+    derivations: List[Derivation]
     parseable_sentences: List[Sentence]
 
     def __init__(
         self,
         lr: float,
-        c:  float,
+        c: float,
         init_param_factory: Callable[[LexItem], float],
     ):
         ##################
@@ -129,15 +130,16 @@ class LogLinearCCG:
 
     def calc_grad(
         self,
-        derivations:         List[Derivation],
+        derivations: List[Derivation],
         target_logical_form: Sem,
     ):
         logical_forms = np.array([x.item.sem for x in derivations], dtype=Sem)
         features = [Counter(x.lexitems) for x in derivations]
-        ps: np.ndarray = np_softmax(
-            np.array([x.score for x in derivations], dtype=float))
+        ps: npt.NDArray[np.float_] = np_softmax(
+            np.array([x.score for x in derivations], dtype=np.float_)
+        )
 
-        are_correct: np.ndarray = logical_forms == target_logical_form
+        are_correct: npt.NDArray[np.bool_] = logical_forms == target_logical_form
 
         p_to_be_correct: float = np.sum(ps[are_correct])
 
@@ -155,10 +157,10 @@ class LogLinearCCG:
 
     def __call__(
         self,
-        sentence:     Sentence,
-        lexicon:      Optional[Lexicon] = None,
+        sentence: Sentence,
+        lexicon: Optional[Lexicon] = None,
         logical_form: Optional[Sem] = None,
-        beam_size:    Optional[int] = None,
+        beam_size: Optional[int] = None,
         return_only_top_score: bool = False,
     ):
         return self.parse(
@@ -171,10 +173,10 @@ class LogLinearCCG:
 
     def parse(
         self,
-        sentence:     Sentence,
-        lexicon:      Optional[Lexicon] = None,
+        sentence: Sentence,
+        lexicon: Optional[Lexicon] = None,
         logical_form: Optional[Sem] = None,
-        beam_size:    Optional[int] = None,
+        beam_size: Optional[int] = None,
         return_only_top_score: bool = False,
     ):
         assert lexicon or self.lexicon, lexicon
@@ -243,11 +245,11 @@ class LogLinearCCG:
 
     def set_parseable_sentences(
         self,
-        vocab_size:   int,
+        vocab_size: int,
         sentence_len: int,
-        lexicon:      Optional[Lexicon] = None,
+        lexicon: Optional[Lexicon] = None,
     ):
-        assert isinstance(vocab_size,   int) and vocab_size > 0, vocab_size
+        assert isinstance(vocab_size, int) and vocab_size > 0, vocab_size
         assert isinstance(sentence_len, int) and sentence_len > 0, sentence_len
         self.parseable_sentences = []
         for sentence in itertools.product(range(1, vocab_size),
@@ -260,15 +262,15 @@ class LogLinearCCG:
     def generate(
         self,
         logical_form: Sem,
-        vocab_size:   int,
+        vocab_size: int,
         sentence_len: int,
-        n_samples:    int = 10000,
-        lexicon:      Optional[Lexicon] = None,
-        append_eos:   bool = True,
+        n_samples: int = 10000,
+        lexicon: Optional[Lexicon] = None,
+        append_eos: bool = True,
     ):
         # assert hasattr(self, 'parseable_sentences')
         assert isinstance(logical_form, Sem), logical_form
-        assert isinstance(append_eos,  bool), append_eos
+        assert isinstance(append_eos, bool), append_eos
 
         vocab = tuple(range(1, vocab_size))
         probs = tuple(self.__unigram[e] for e in vocab)
@@ -285,7 +287,7 @@ class LogLinearCCG:
             parses = self(candidate, lexicon)
 
             sems = np.array([x.item.sem for x in parses], dtype=Sem)
-            likelihoods = np_softmax(np.array([x.score for x in parses]))
+            likelihoods = np_softmax(np.array([x.score for x in parses], dtype=np.float_))
             likelihood = np.sum(likelihoods[sems == logical_form])
 
             joint_prob = likelihood * prior_prob

@@ -13,6 +13,7 @@ from ...io import make_logger
 from ..msg import get_length
 from .baseline import SimpleBaseline
 
+
 def compute_effective_value(
     origin: torch.Tensor,
     length: torch.Tensor,
@@ -29,6 +30,7 @@ def compute_effective_value(
         effective = effective / length
     return effective
 
+
 class SingleGame(nn.Module):
     def __init__(
         self,
@@ -38,7 +40,7 @@ class SingleGame(nn.Module):
         recver_entropy_coeff: float,
         loss: Callable[..., Tuple[torch.Tensor, Dict[str, Any]]],
         baseline_type: Type[SimpleBaseline] = SimpleBaseline,
-        length_cost:  float = 0.0,
+        length_cost: float = 0.0,
     ):
         self.logger = make_logger(self.__class__.__name__)
         ##################
@@ -55,26 +57,28 @@ class SingleGame(nn.Module):
 
     def forward(
         self,
-        sender_input: torch.LongTensor,
-        recver_input: Optional[torch.LongTensor] = None,
-        label:        Optional[torch.LongTensor] = None,
+        sender_input: torch.Tensor,
+        labels: torch.Tensor,
+        receiver_input: Optional[torch.Tensor] = None,
+        aux_input: Optional[torch.Tensor] = None,
     ):
-        sender_output, sender_logprob, sender_entropy = self.sender(sender_input)  # noqa: E501
-        recver_output, recver_logprob, recver_entropy = self.recver(sender_output, recver_input)  # noqa: E501
+        sender_output, sender_logprob, sender_entropy = self.sender.forward(sender_input)
+        recver_output, recver_logprob, recver_entropy = self.recver.forward(sender_output, receiver_input)
 
         sender_length = get_length(sender_output)
-        recver_length = get_length(recver_output)
-        logprob = (
-            compute_effective_value(sender_logprob, sender_length, take_average=False) +
-            compute_effective_value(recver_logprob, recver_length, take_average=False)
+        recver_length = get_length(sender_input)
+        logprob = compute_effective_value(
+            sender_logprob, sender_length, take_average=False
+        ) + compute_effective_value(
+            recver_logprob, recver_length, take_average=False
         )
-        entropy = (
-            compute_effective_value(sender_entropy, sender_length, take_average=True).mean() * self.sender_entr_coeff +
-            compute_effective_value(recver_entropy, recver_length, take_average=True).mean() * self.recver_entr_coeff
-        )
+        entropy = self.sender_entr_coeff * compute_effective_value(
+            sender_entropy, sender_length, take_average=True
+        ).mean() + self.recver_entr_coeff * compute_effective_value(
+            recver_entropy, recver_length, take_average=True
+        ).mean()
 
-        loss, rest = self.loss(sender_input, sender_output,
-                               recver_input, recver_output, label)
+        loss, rest = self.loss(sender_input, sender_output, receiver_input, recver_output, labels)
 
         policy_loss = (
             (loss.detach() - self.baseline['loss']()) * logprob).mean()
@@ -86,10 +90,10 @@ class SingleGame(nn.Module):
             self.baseline['loss'].update(loss)
 
         rest.update({
-            'loss':               optimized_loss,
-            'original_loss':      loss,
-            'sender_entropy':     sender_entropy,
-            'recver_entropy':     recver_entropy,
+            'loss': optimized_loss,
+            'original_loss': loss,
+            'sender_entropy': sender_entropy,
+            'recver_entropy': recver_entropy,
             'sender_mean_length': sender_length,
             'recver_mean_length': recver_length,
         })

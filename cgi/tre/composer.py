@@ -6,9 +6,9 @@ import torch.nn as nn
 class Composer(nn.Module):
     def __init__(
         self,
-        input_vocab_size:  int,
+        input_vocab_size: int,
         output_vocab_size: int,
-        output_len:        int,
+        output_len: int,
     ):
         super().__init__()
         self.input_vocab_size = input_vocab_size
@@ -22,9 +22,7 @@ class Composer(nn.Module):
 
     def forward(self, x: Union[Tuple[Any, Any], torch.Tensor]):
         if isinstance(x, tuple):
-            return (
-                self.lproj(self.forward(x[0])) +
-                self.rproj(self.forward(x[1])))
+            return self.lproj(self.forward(x[0])) + self.rproj(self.forward(x[1]))
         else:
             return self.emb(x).view(
                 self.output_vocab_size, self.output_len)

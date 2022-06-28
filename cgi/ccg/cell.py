@@ -7,9 +7,9 @@ from .lexitem import LexItem
 
 @dataclasses.dataclass(frozen=True)
 class Derivation:
-    item:     LexItem
-    score:    float = 0.0
-    backptrs: Sequence['Derivation'] = ()
+    item: LexItem
+    score: float = 0
+    backptrs: Sequence["Derivation"] = ()
 
     def __bool__(self):
         return True
