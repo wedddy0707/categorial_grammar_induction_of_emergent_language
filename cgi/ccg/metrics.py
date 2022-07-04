@@ -81,7 +81,7 @@ def metrics_of_induced_categorial_grammar(
             ########
             train_precision, train_recall, train_f1, train_parses = test(parser, train_dataset)
             valid_precision, valid_recall, valid_f1, valid_parses = test(parser, valid_dataset)
-            test_precision, test_recall, test_f1, train_parses = test(parser, test_dataset)
+            test_precision, test_recall, test_f1, test_parses = test(parser, test_dataset)
             logger.info(
                 "\n"
                 f"For train data:      precision={train_precision}, recall={train_recall}, F1={train_f1}.\n"
@@ -98,8 +98,11 @@ def metrics_of_induced_categorial_grammar(
                 print("parses for train data:")
                 for p in train_parses:
                     print(p, "\n")
-                print("parses for test data:")
+                print("parses for validation data:")
                 for p in valid_parses:
+                    print(p, "\n")
+                print("parses for test data:")
+                for p in test_parses:
                     print(p, "\n")
             ###########
             # Metrics #
