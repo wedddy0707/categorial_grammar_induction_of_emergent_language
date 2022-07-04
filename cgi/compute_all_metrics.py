@@ -22,16 +22,23 @@ def main(params: Sequence[str]):
     set_random_seed(opts.random_seed)
 
     for epoch in range(opts.min_epoch_in_log_file, opts.max_epoch_in_log_file + 1):
+        m: Dict[str, Dict[str, List[float]]] = {}
+
         logger.info(f"Read corpus at epoch {epoch}")
         try:
             corpus = opts.log_file.extract_corpus(epoch)
         except KeyError as e:
             logger.info(f"Corpus at epoch {e} is not available.")
             continue
+        try:
+            m_emecom = opts.log_file.extract_learning_history("evaluation", epoch)
+            m_emecom.pop("mode", None)
+            m_emecom.pop("epoch", None)
+            m.update({"emecom": m_emecom})
+        except KeyError as e:
+            logger.info(f"Evaluation at epoch {e} is not available.")
 
         vocab_size: int = opts.log_file.extract_config().vocab_size
-
-        m: Dict[str, Dict[str, List[float]]] = {}
 
         logger.info("Compute TRE")
         m_tre = metrics_of_tre(
@@ -62,6 +69,7 @@ def main(params: Sequence[str]):
             vocab_size=vocab_size,
             n_trains=opts.n_trains_for_metric,
             show_lexicon=True,
+            show_parses=True,
         )
         m.update(m_cgi)
 
