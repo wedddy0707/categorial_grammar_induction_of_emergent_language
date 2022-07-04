@@ -264,11 +264,11 @@ def test(
         if len(parses) > 0:
             top_score_parse = max(parses, key=lambda x: x.score)
             visualized_top_score_parses.append(
-                f'{msg} is parsed ' + ('correctly' if top_score_parse.item.sem == lgc else 'wrongly') + '.\n' +  # noqa: E501
+                f'{msg}, {lgc} is parsed ' + ('correctly' if top_score_parse.item.sem == lgc else 'wrongly') + '.\n' +  # noqa: E501
                 max(parses, key=lambda x: x.score).visualize())
         else:
             visualized_top_score_parses.append(
-                f'{msg} is not parserd.')
+                f'{msg}, {lgc} is not parserd.')
     try:
         precision = sum(are_correct) / sum(are_parsed)
     except ZeroDivisionError:
