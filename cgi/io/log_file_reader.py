@@ -90,7 +90,7 @@ class LogFile:
         self,
         mode: Literal["train", "test", "metric", "evaluation"],
         epoch: int,
-    ) -> dict[str, Any]:
+    ) -> Dict[str, Any]:
         assert mode in {"train", "test", "metric", "evaluation"}, mode
         info: Dict[str, Any] = json.loads(
             self.lines[
