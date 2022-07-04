@@ -3,7 +3,18 @@ import pathlib
 from collections import defaultdict
 from typing import Any, Dict, Literal, Union, NamedTuple, Optional, List, Tuple
 
+import enum
 import pandas as pd
+
+
+class Mode(enum.Enum):
+    config = enum.auto()
+    dataset = enum.auto()
+    language = enum.auto()
+    train = enum.auto()
+    test = enum.auto()
+    metric = enum.auto()
+    evaluation = enum.auto()
 
 
 class LogFile:
@@ -24,81 +35,72 @@ class LogFile:
         self.line_idx: "defaultdict[str, Dict[int, int]]" = defaultdict(dict)
         self.max_epoch = 0
         self.max_acc = 0.0
-        self.line_no_of_config: int = -1
-        self.line_no_of_dataset: int = -1
-        self.line_no_of_language: Dict[Optional[int], int] = {}
-        self.line_no_of_train: Dict[Optional[int], int] = {}
-        self.line_no_of_test: Dict[Optional[int], int] = {}
-        self.line_no_of_metric: Dict[Optional[int], int] = {}
+        self.line_number_of_mode: Dict[Mode, Dict[Optional[int], int]] = {mode: {} for mode in Mode}
 
         for i, line in enumerate(self.lines):
             try:
-                info = json.loads(line)
+                info: Dict[str, Any] = json.loads(line)
             except ValueError:
                 continue
             mode: Optional[str] = info.pop("mode", None)
             epoch: Optional[int] = info.pop("epoch", None)
             if mode == "config":
+                self.line_number_of_mode[Mode.config][None] = i
                 self.line_no_of_config = i
             elif mode == "dataset":
+                self.line_number_of_mode[Mode.dataset][None] = i
                 self.line_no_of_dataset = i
             elif mode == "language":
-                self.line_no_of_language[epoch] = i
+                self.line_number_of_mode[Mode.language][epoch] = i
             elif mode == "train":
-                self.line_no_of_train[epoch] = i
+                self.line_number_of_mode[Mode.train][epoch] = i
             elif mode == "test":
-                self.line_no_of_test[epoch] = i
+                self.line_number_of_mode[Mode.test][epoch] = i
                 self.max_acc = max(self.max_acc, info["acc"])
             elif mode == "metric":
-                self.line_no_of_metric[epoch] = i
+                self.line_number_of_mode[Mode.metric][epoch] = i
+            elif mode == "evaluation":
+                self.line_number_of_mode[Mode.evaluation][epoch] = i
             if epoch is not None:
                 self.max_epoch = max(self.max_epoch, epoch)
         return self.lines
-
-    def write(self, path: Optional[pathlib.Path] = None):
-        if path is None:
-            path = self.log_path
-        with path.open(mode="w") as fileobj:
-            fileobj.writelines(self.lines)
 
     def get_first_epoch_to_reach_acc(
         self,
         acc: float,
     ) -> Union[int, None]:
         for epoch in range(1, self.max_epoch + 1):
-            info = json.loads(self.lines[self.line_no_of_test[epoch]])
+            info = json.loads(self.lines[self.line_number_of_mode[Mode.test][epoch]])
             if info["acc"] >= acc:
                 return epoch
         return None
 
     def extract_corpus(self, epoch: int) -> pd.DataFrame:
         data: Dict[str, Any] = dict()
-        data.update(json.loads(self.lines[self.line_no_of_dataset])["data"])
-        data.update(json.loads(self.lines[self.line_no_of_language[epoch]])["data"])
+        data.update(json.loads(self.lines[self.line_number_of_mode[Mode.dataset][None]])["data"])
+        data.update(json.loads(self.lines[self.line_number_of_mode[Mode.language][epoch]])["data"])
         return pd.DataFrame(data=data)
 
     def extract_config(self):
-        config = json.loads(self.lines[self.line_no_of_config])
+        config: Dict[str, Any] = json.loads(self.lines[self.line_number_of_mode[Mode.config][None]])
         names = [(str(k), type(v)) for k, v in config.items()]
         return NamedTuple("Config", names)(**config)
 
     def extract_learning_history(
         self,
-        mode: Literal["train", "test", "metric"],
-    ) -> pd.DataFrame:
-        assert mode in {"train", "test", "metric"}, mode
-        data: "defaultdict[str, Any]" = defaultdict(list)
-        for epoch in range(1, self.max_epoch + 1):
-            info = json.loads(
-                self.lines[
-                    self.line_no_of_train[epoch] if mode == "train"
-                    else self.line_no_of_test[epoch] if mode == "test"
-                    else self.line_no_of_metric[epoch]
-                ]
-            )
-            for k, v in info.items():
-                data[k].append(v)
-        return pd.DataFrame(data=data)
+        mode: Literal["train", "test", "metric", "evaluation"],
+        epoch: int,
+    ) -> dict[str, Any]:
+        assert mode in {"train", "test", "metric", "evaluation"}, mode
+        info: Dict[str, Any] = json.loads(
+            self.lines[
+                self.line_number_of_mode[Mode.train][epoch] if mode == "train"
+                else self.line_number_of_mode[Mode.test][epoch] if mode == "test"
+                else self.line_number_of_mode[Mode.metric][epoch] if mode == "metric"
+                else self.line_number_of_mode[Mode.evaluation][epoch]
+            ]
+        )
+        return info
 
 
 def dump_metrics(
