@@ -25,13 +25,13 @@ _SPLIT = "split"
 class AskSender(core.Callback):
     split_to_dataset: Dict[Literal["train", "valid", "test"], SemanticsDataset]
     device: torch.device
-    freq: int
+    freq: Optional[int]
 
     def __init__(
         self,
         split_to_dataset: Dict[Literal["train", "valid", "test"], SemanticsDataset],
         device: torch.device,
-        freq: int = 1,
+        freq: Optional[int] = 1,
     ):
         self.split_to_dataset = split_to_dataset
         self.device = device
@@ -46,7 +46,7 @@ class AskSender(core.Callback):
 
     def on_epoch_end(self, *stuff: Any):
         self.epoch_counter += 1
-        if self.freq > 0 and self.epoch_counter % self.freq == 0:
+        if self.freq is not None and self.epoch_counter % self.freq == 0:
             self.dump()
 
     def cut_eos(self, x: Sequence[int]):

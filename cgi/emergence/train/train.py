@@ -135,9 +135,9 @@ def main(argv: List[str]):
         "test": test_data,
     }
     callbacks: List[core.Callback] = [
-        Metrics(split_to_dataset, opts.device, freq=0),
-        DumpCorpus(split_to_dataset, opts.device, freq=0),
-        Evaluator(split_to_dataset, device=opts.device, freq=0),
+        Metrics(split_to_dataset, opts.device, freq=opts.stats_dump_freq),
+        DumpCorpus(split_to_dataset, opts.device, freq=opts.language_dump_freq),
+        Evaluator(split_to_dataset, device=opts.device, freq=opts.stats_dump_freq),
         core.ConsoleLogger(as_json=True, print_train_loss=True),
         core.EarlyStopperAccuracy(opts.early_stopping_thr),
         PeriodicAgentResetter(opts.sender_life_span, opts.receiver_life_span),

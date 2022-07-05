@@ -29,6 +29,8 @@ class NamespaceForEmergentLang:
     enable_receiver_attention: bool
     cell: Literal["rnn", "gru", "lstm"]
     max_n_predicates: int
+    language_dump_freq: Optional[int]
+    stats_dump_freq: Optional[int]
 
 
 def get_common_params(
@@ -54,6 +56,8 @@ def get_common_params(
     parser.add_argument("--enable_receiver_attention", type=s2b, default=True)
     parser.add_argument("--cell", type=str, choices=("rnn", "gru", "lstm"), default="gru")
     parser.add_argument("--max_n_predicates", type=int, default=0)
+    parser.add_argument("--language_dump_freq", type=int, default=None)
+    parser.add_argument("--stats_dump_freq", type=int, default=None)
 
     args = core.init(parser, params)
     typed_args = NamespaceForEmergentLang()
