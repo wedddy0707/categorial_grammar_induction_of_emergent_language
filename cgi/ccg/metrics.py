@@ -73,7 +73,6 @@ def metrics_of_induced_categorial_grammar(
                 n_epochs=n_epochs,
                 lr=lr,
                 c=c,
-                use_tqdm=use_tqdm,
                 show_progress=show_train_progress,
             )
             ########
@@ -107,8 +106,8 @@ def metrics_of_induced_categorial_grammar(
             ###########
             # Metrics #
             ###########
-            metric[Metric.cgf][key].append(test_f1)
-            metric[Metric.cgl][key].append(len(parser.lexicon) / len(train_dataset))
+            metric[Metric.cgf.value][key].append(test_f1)
+            metric[Metric.cgl.value][key].append(len(parser.lexicon) / len(train_dataset))
         end_time = time.time()
         logger.info(f"processing time: {end_time - start_time}")
     return metric

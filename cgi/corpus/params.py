@@ -24,9 +24,10 @@ class TargetLanguage(enum.Enum):
     adjacent_swapped_3 = "adjacent_swapped_3"
 
 
-class Metric:
-    topsim: Literal["TopSim"] = "TopSim"
-    tre: Literal["TRE"] = "TRE"
-    cgf: Literal["CGF"] = "CGF"
-    cgl: Literal["CGL"] = "CGL"
-    cgi: Literal["CGI-general-info"] = "CGI-general-info"
+class Metric(enum.Enum):
+    emecom = "emecom"
+    topsim = "TopSim"
+    tre = "TRE"
+    cgf = "CGF"
+    cgl = "CGL"
+    cgi = "CGI-general-info"

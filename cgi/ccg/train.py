@@ -5,11 +5,9 @@ import random
 import time
 import copy
 from collections import Counter, defaultdict
-from typing import (Any, Dict, Hashable, Iterable, List, Optional, Sequence,
-                    Set, Tuple)
+from typing import Dict, Hashable, List, Optional, Sequence, Set, Tuple
 
 import numpy as np
-from tqdm import tqdm
 
 from ..io import make_logger
 from .genlex import newlex
@@ -34,7 +32,7 @@ class InitParamFactory:
         self.scale = scale
         self.default = default
 
-        cooccur_list_per_ngram: 'defaultdict[int, List[Tuple[Sentence, Sem]]]' = defaultdict(list)  # noqa: E501
+        cooccur_list_per_ngram: "defaultdict[int, List[Tuple[Sentence, Sem]]]" = defaultdict(list)  # noqa: E501
         for msg, lgc, _ in dataset:
             for cnst in lgc.constant():
                 for n in range(1, len(msg) + 1):
@@ -78,7 +76,7 @@ def make_init_param_factory(
     scale: float = 1,
     default: float = 0,
 ):
-    cooccur_list_per_ngram: 'defaultdict[int, List[Tuple[Sentence, Sem]]]' = defaultdict(list)  # noqa: E501
+    cooccur_list_per_ngram: "defaultdict[int, List[Tuple[Sentence, Sem]]]" = defaultdict(list)  # noqa: E501
     for msg, lgc, _ in dataset:
         for cnst in lgc.constant():
             for n in range(1, len(msg) + 1):
@@ -89,7 +87,7 @@ def make_init_param_factory(
 
     def init_param_factory(
         key: LexItem,
-        cooccur_per_ngram: 'dict[int, Counter[Tuple[Sentence, Sem]]]' = cooccur_per_ngram,  # noqa: E501
+        cooccur_per_ngram: "dict[int, Counter[Tuple[Sentence, Sem]]]" = cooccur_per_ngram,  # noqa: E501
         scale: float = scale,
         default: float = default,
     ):
@@ -129,7 +127,6 @@ def train(
     lr: float = 0.1,
     c: float = 0,
     beam_size: Optional[int] = 10,
-    use_tqdm: bool = False,
     show_progress: bool = False,
 ):
     logging_level = logger.level
@@ -139,7 +136,7 @@ def train(
     ####################
     # initialize model #
     ####################
-    logger.info('initializing model')
+    logger.info("initializing model")
     parser = LogLinearCCG(
         lr=lr,
         c=c,
@@ -148,24 +145,19 @@ def train(
     ######################
     # initialize lexicon #
     ######################
-    logger.info('initializing lexicon')
-    pbar: Iterable[Tuple[Sentence, Sem, Any]] = tqdm(
-        train_dataset,
-        desc='Lexicon Initialization',
-        disable=not use_tqdm,
-    )
-    for msg, lgc, _ in pbar:
+    logger.info("initializing lexicon")
+    for msg, lgc, _ in train_dataset:
         parser.update_lexicon(LexItem(cat=BasicCat.S, sem=lgc, pho=tuple(msg)))
     ############
     # Training #
     ############
-    logger.info('start training')
+    logger.info("start training")
     best_validation_fscore = 0
     best_parser = copy.deepcopy(parser)
     for epoch in range(1, n_epochs + 1):
         logger.info(
-            f'Lexicon size is {len(parser.lexicon)} '
-            f'at the begging of epoch {epoch}'
+            f"Lexicon size is {len(parser.lexicon)} "
+            f"at the begging of epoch {epoch}"
         )
         ########################
         # Parameter Estimation #
@@ -173,12 +165,7 @@ def train(
         times = [time.time()]
         old_lexicon = parser.lexicon.copy()
         new_lexicon: Set[LexItem] = set()
-        pbar: Iterable[Tuple[Sentence, Sem, Any]] = tqdm(
-            random.sample(train_dataset, len(train_dataset)),
-            desc=f'Parameter Estimation at epoch {epoch}',
-            disable=not use_tqdm,
-        )
-        for msg, lgc, _ in pbar:
+        for msg, lgc, _ in random.sample(train_dataset, len(train_dataset)):
             first_parses = parser(
                 msg,
                 logical_form=lgc,
@@ -195,8 +182,6 @@ def train(
             # Lexicon Pruning
             new_lexicon |= empty_lexicon.union(
                 *(x.lexitems for x in first_parses))
-            # TQDM
-            pbar.set_postfix(lexicon_size=len(parser.lexicon))
         parser.lexicon = new_lexicon
         ########################
         # Accuracy Calculation #
@@ -209,23 +194,23 @@ def train(
             best_validation_fscore = vld_f
             best_parser = copy.deepcopy(parser)
         logger.info(json.dumps({
-            'mode': 'train',
-            'epoch': epoch,
-            'trn-p': trn_p,
-            'trn-r': trn_r,
-            'trn-f': trn_f,
-            'vld-p': vld_p,
-            'vld-r': vld_r,
-            'vld-f': vld_f,
-            'size': len(parser.lexicon),
-            '#new lexicon': len(parser.lexicon - old_lexicon),
-            '#old lexicon': len(old_lexicon - parser.lexicon),
-            'times': [round(y - x, 4) for x, y in zip(times[:-1], times[1:])],  # noqa: E501
+            "mode": "train",
+            "epoch": epoch,
+            "trn-p": trn_p,
+            "trn-r": trn_r,
+            "trn-f": trn_f,
+            "vld-p": vld_p,
+            "vld-r": vld_r,
+            "vld-f": vld_f,
+            "size": len(parser.lexicon),
+            "#new lexicon": len(parser.lexicon - old_lexicon),
+            "#old lexicon": len(old_lexicon - parser.lexicon),
+            "times": [round(y - x, 4) for x, y in zip(times[:-1], times[1:])],
         }, indent=4))
     ##########################################
     # make prior distribution over sentences #
     ##########################################
-    logger.info('make prior distribution over sentences')
+    logger.info("make prior distribution over sentences")
     best_parser.unigram = Counter(
         itertools.chain.from_iterable(msg for msg, _, _ in train_dataset))
 
@@ -236,23 +221,17 @@ def train(
 def test(
     parser: LogLinearCCG,
     dataset: Dataset,
-    beam_size: Optional[int] = 25,
-    use_tqdm: bool = False,
+    beam_size: Optional[int] = 10,
 ):
     are_parsed: List[int] = []
     are_correct: List[int] = []
     visualized_top_score_parses: List[str] = []
-    pbar: Iterable[Tuple[Sentence, Sem, Any]] = tqdm(
-        dataset,
-        desc='Precision-Recall Calculation',
-        disable=not use_tqdm,
-    )
-    for msg, lgc, _ in pbar:
+    for msg, lgc, _ in dataset:
         parses = parser(msg, beam_size=beam_size)
 
         is_parsed = is_correct = False
         if len(parses) > 0:
-            sem_score: 'defaultdict[Sem, float]' = defaultdict(float)
+            sem_score: "defaultdict[Sem, float]" = defaultdict(float)
             for parse in parses:
                 sem_score[parse.item.sem] += parse.score
             top_score_sem = max(sem_score.items(), key=lambda x: x[1])[0]
@@ -263,12 +242,16 @@ def test(
 
         if len(parses) > 0:
             top_score_parse = max(parses, key=lambda x: x.score)
-            visualized_top_score_parses.append(
-                f'{msg}, {lgc} is parsed ' + ('correctly' if top_score_parse.item.sem == lgc else 'wrongly') + '.\n' +  # noqa: E501
-                max(parses, key=lambda x: x.score).visualize())
+            dump = "({}, {}) is parsed {}.\n{}".format(
+                msg,
+                lgc,
+                "correctly" if top_score_parse.item.sem == lgc else "wrongly",
+                max(parses, key=lambda x: x.score).visualize(),
+            )
+            visualized_top_score_parses.append(dump)
         else:
-            visualized_top_score_parses.append(
-                f'{msg}, {lgc} is not parserd.')
+            dump = "({}, {}) is not parsed.".format(msg, lgc)
+            visualized_top_score_parses.append(dump)
     try:
         precision = sum(are_correct) / sum(are_parsed)
     except ZeroDivisionError:

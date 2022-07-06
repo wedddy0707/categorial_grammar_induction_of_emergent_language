@@ -64,7 +64,7 @@ def metrics_of_topsim(
             key = target_lang.value
 
         metric[key] = [compute_topsim(preprocessed_corpus[CorpusKey.sentence].tolist(), preprocessed_corpus[CorpusKey.input].tolist())]
-    return {Metric.topsim: metric}
+    return {Metric.topsim.value: metric}
 
 
 def main(params: Sequence[str]):

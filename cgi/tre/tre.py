@@ -76,4 +76,4 @@ def metrics_of_tre(
             tre /= data_size
 
             metric[key].append(tre.item())
-    return {Metric.tre: metric}
+    return {Metric.tre.value: metric}

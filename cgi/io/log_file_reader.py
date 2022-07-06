@@ -140,6 +140,7 @@ def dump_metrics(
     None. This is a void function.
     """
     dump: Dict[str, Any] = {
+        "mode": "metric",
         "epoch": epoch,
         "config_of_emergence": log_file.extract_config()._asdict(),
     }
