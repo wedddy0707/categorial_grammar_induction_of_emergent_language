@@ -25,8 +25,8 @@ def metrics_of_induced_categorial_grammar(
     show_parses: bool = False,
 ):
     metric: Dict[str, Dict[str, List[Optional[float]]]] = {
-        Metric.cgf: {},
-        Metric.cgl: {},
+        Metric.cgf.value: {},
+        Metric.cgl.value: {},
     }
 
     for target_lang in sorted(target_langs, key=(lambda x: x.value)):
@@ -60,8 +60,8 @@ def metrics_of_induced_categorial_grammar(
         else:
             key = target_lang.value
 
-        metric[Metric.cgf][key] = []
-        metric[Metric.cgl][key] = []
+        metric[Metric.cgf.value][key] = []
+        metric[Metric.cgl.value][key] = []
 
         for _ in range(n_trains):
             #########
