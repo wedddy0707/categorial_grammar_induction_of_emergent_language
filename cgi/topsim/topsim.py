@@ -5,7 +5,7 @@ from typing import Callable, List, Optional, Sequence, TypeVar, Set, Dict
 
 import editdistance
 import pandas as pd
-from scipy.stats import spearmanr
+from scipy.stats import spearmanr  # type: ignore
 
 from ..io import make_logger, dump_metrics, NameSpaceForMetrics, get_params
 from ..corpus import basic_preprocess_of_corpus_df, TargetLanguage, CorpusKey, Metric
@@ -38,7 +38,7 @@ def compute_topsim(
         for j in range(i + 1, len(dataset_1)):
             dist_1.append(distance_1(dataset_1[i], dataset_1[j]))
             dist_2.append(distance_2(dataset_2[i], dataset_2[j]))
-    return spearmanr(dist_1, dist_2).correlation
+    return spearmanr(dist_1, dist_2).correlation  # type: ignore
 
 
 def metrics_of_topsim(
@@ -63,7 +63,12 @@ def metrics_of_topsim(
         else:
             key = target_lang.value
 
-        metric[key] = [compute_topsim(preprocessed_corpus[CorpusKey.sentence].tolist(), preprocessed_corpus[CorpusKey.input].tolist())]
+        metric[key] = [
+            compute_topsim(
+                preprocessed_corpus[CorpusKey.sentence].tolist(),  # type: ignore
+                preprocessed_corpus[CorpusKey.input].tolist(),     # type: ignore
+            )
+        ]
     return {Metric.topsim.value: metric}
 
 
@@ -86,7 +91,7 @@ def main(params: Sequence[str]):
             corpus,
             vocab_size=vocab_size,
             swap_count=opts.swap_count,
-            target_langs={opts.target_language},
+            target_langs=set(opts.target_language),
         )
         logger.info(json.dumps(m, indent=4))
         dump_metrics(m, opts.log_file, epoch)

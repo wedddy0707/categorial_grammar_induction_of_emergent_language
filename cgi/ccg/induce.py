@@ -43,12 +43,11 @@ def main(params: Sequence[str]) -> None:
         logger.info("inducing categorial grammar...")
         m = metrics_of_induced_categorial_grammar(
             corpus,
-            target_lang=opts.target_language,
+            target_langs=set(opts.target_language),
             swap_count=opts.swap_count,
             n_epochs=opts.n_epochs_for_metric,
             n_trains=opts.n_trains_for_metric,
             vocab_size=opts.log_file.extract_config().vocab_size,
-            use_tqdm=opts.use_tqdm,
             show_lexicon=opts.show_lexicon,
             show_parses=opts.show_parses,
             show_train_progress=True,

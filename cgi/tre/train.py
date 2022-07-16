@@ -41,11 +41,11 @@ def main(
         m = metrics_of_tre(
             corpus,
             vocab_size=vocab_size,
-            target_langs={opts.target_language},
+            target_langs=set(opts.target_language),
             swap_count=opts.swap_count,
             n_epochs=opts.n_epochs_for_metric,
             n_trains=opts.n_trains_for_metric,
-            lr=opts.lr,
+            lr=opts.lr_for_tre,
         )
         logger.info(json.dumps(m, indent=4))
         dump_metrics(m, opts.log_file, epoch)
