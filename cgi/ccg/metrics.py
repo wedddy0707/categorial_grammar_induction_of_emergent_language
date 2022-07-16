@@ -19,7 +19,6 @@ def metrics_of_induced_categorial_grammar(
     lr: float = 0.1,
     c: float = 0.1,
     vocab_size: int = 1,
-    use_tqdm: bool = False,
     show_train_progress: bool = False,
     show_lexicon: bool = False,
     show_parses: bool = False,
@@ -42,18 +41,25 @@ def metrics_of_induced_categorial_grammar(
             vocab_size=vocab_size,
         )
         # dataset
-        train_split = preprocessed_corpus[corpus[CorpusKey.split] == "train"]
-        valid_split = preprocessed_corpus[corpus[CorpusKey.split] == "test"]
-        test_split = preprocessed_corpus[corpus[CorpusKey.split] == "test"]
-        train_dataset: Dataset = tuple(
-            zip(train_split[CorpusKey.sentence], train_split[CorpusKey.semantics], train_split[CorpusKey.input])
-        )
-        valid_dataset: Dataset = tuple(
-            zip(valid_split[CorpusKey.sentence], valid_split[CorpusKey.semantics], valid_split[CorpusKey.input])
-        )
-        test_dataset: Dataset = tuple(
-            zip(test_split[CorpusKey.sentence], test_split[CorpusKey.semantics], test_split[CorpusKey.input])
-        )
+        split: pd.Series[str] = corpus[CorpusKey.split]
+        trn_split = preprocessed_corpus[split == "train"]
+        dev_split = preprocessed_corpus[split == "test"]
+        tst_split = preprocessed_corpus[split == "test"]
+        trn_dataset: Dataset = tuple(zip(
+            trn_split[CorpusKey.sentence],   # type: ignore
+            trn_split[CorpusKey.semantics],  # type: ignore
+            trn_split[CorpusKey.input],      # type: ignore
+        ))
+        dev_dataset: Dataset = tuple(zip(
+            dev_split[CorpusKey.sentence],   # type: ignore
+            dev_split[CorpusKey.semantics],  # type: ignore
+            dev_split[CorpusKey.input],      # type: ignore
+        ))
+        tst_dataset: Dataset = tuple(zip(
+            tst_split[CorpusKey.sentence],   # type: ignore
+            tst_split[CorpusKey.semantics],  # type: ignore
+            tst_split[CorpusKey.input],      # type: ignore
+        ))
 
         if target_lang == TargetLanguage.adjacent_swapped:
             key = "{}_{}".format(target_lang.value, swap_count)
@@ -68,8 +74,8 @@ def metrics_of_induced_categorial_grammar(
             # Train #
             #########
             parser = train(
-                train_dataset,
-                valid_dataset,
+                trn_dataset,
+                dev_dataset,
                 n_epochs=n_epochs,
                 lr=lr,
                 c=c,
@@ -78,36 +84,38 @@ def metrics_of_induced_categorial_grammar(
             ########
             # Test #
             ########
-            train_precision, train_recall, train_f1, train_parses = test(parser, train_dataset)
-            valid_precision, valid_recall, valid_f1, valid_parses = test(parser, valid_dataset)
-            test_precision, test_recall, test_f1, test_parses = test(parser, test_dataset)
+            trn_precision, trn_recall, trn_f1, trn_parses = test(parser, trn_dataset)
+            dev_precision, dev_recall, dev_f1, dev_parses = test(parser, dev_dataset)
+            tst_precision, tst_recall, tst_f1, tst_parses = test(parser, tst_dataset)
             logger.info(
                 "\n"
-                f"For train data:      precision={train_precision}, recall={train_recall}, F1={train_f1}.\n"
-                f"For validation data: precision={valid_precision}, recall={valid_recall}, F1={valid_f1}.\n"
-                f"For train data:      precision={test_precision},  recall={test_recall},  F1={test_f1}."
+                f"For train data: precision={trn_precision}, recall={trn_recall}, F1={trn_f1}.\n"
+                f"For dev data:   precision={dev_precision}, recall={dev_recall}, F1={dev_f1}.\n"
+                f"For test data:  precision={tst_precision}, recall={tst_recall}, F1={tst_f1}."
             )
             ######################
             # Some visualization #
             ######################
             if show_lexicon:
-                for item in sorted(parser.lexicon, key=lambda x: parser.params[x], reverse=True):
-                    print(f"{str(item): <60} SCORE={parser.params[item]}")
+                logger.info(
+                    "Show Lexicon\n" + "\n".join([
+                        f"{str(item): <60} SCORE={parser.params[item]}"
+                        for item in sorted(
+                            parser.lexicon,
+                            reverse=True,
+                            key=lambda x: parser.params[x],
+                        )
+                    ])
+                )
             if show_parses:
-                print("parses for train data:")
-                for p in train_parses:
-                    print(p, "\n")
-                print("parses for validation data:")
-                for p in valid_parses:
-                    print(p, "\n")
-                print("parses for test data:")
-                for p in test_parses:
-                    print(p, "\n")
+                logger.info("Parses for train data:\n" + "\n\n".join(trn_parses))
+                logger.info("Parses for dev data:\n" + "\n\n".join(dev_parses))
+                logger.info("Parses for test data:\n" + "\n\n".join(tst_parses))
             ###########
             # Metrics #
             ###########
-            metric[Metric.cgf.value][key].append(test_f1)
-            metric[Metric.cgl.value][key].append(len(parser.lexicon) / len(train_dataset))
+            metric[Metric.cgf.value][key].append(tst_f1)
+            metric[Metric.cgl.value][key].append(len(parser.lexicon) / len(trn_dataset))
         end_time = time.time()
-        logger.info(f"processing time: {end_time - start_time}")
+        logger.info(f"Processing time: {end_time - start_time}s")
     return metric
