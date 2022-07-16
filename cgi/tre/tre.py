@@ -2,7 +2,7 @@ from typing import List, Tuple, Callable, Set, Dict
 
 import pandas as pd
 import torch
-from torch.nn.functional import one_hot
+from torch.nn.functional import one_hot  # type: ignore
 import torch.optim as optim
 
 from ..semantics.semantics import Sem, convert_semantics_to_tensors_for_tre_model, SEMANTIC_PIECE_TO_ID
@@ -32,8 +32,8 @@ def metrics_of_tre(
         )
 
         preprocessed_corpus = preprocessed_corpus[preprocessed_corpus[CorpusKey.split] == "train"]
-        msgs: List[Tuple[int, ...]] = preprocessed_corpus[CorpusKey.sentence].tolist()
-        sems: List[Sem] = preprocessed_corpus[CorpusKey.semantics].tolist()
+        msgs: List[Tuple[int, ...]] = preprocessed_corpus[CorpusKey.sentence].tolist()  # type: ignore
+        sems: List[Sem] = preprocessed_corpus[CorpusKey.semantics].tolist()  # type: ignore
 
         total_len = max(len(s) for s in msgs)
         tensor_msgs: List[torch.Tensor] = [
@@ -65,7 +65,7 @@ def metrics_of_tre(
                 for msg, sem in dataset:
                     loss = loss + objective.forward(sem, msg)
                 loss = loss / data_size
-                loss.backward()
+                loss.backward()  # type: ignore
                 optimizer.step()
 
             tre: torch.Tensor = torch.as_tensor(0, dtype=torch.float)
