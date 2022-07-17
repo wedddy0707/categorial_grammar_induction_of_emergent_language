@@ -36,7 +36,7 @@ def basic_preprocess_of_corpus_df(
         return tuple(y)
 
     def random_sampler(x: Sequence[int], vocab_size: int = vocab_size):
-        return tuple(random.sample(range(1, vocab_size), len(x)))
+        return tuple(random.choices(range(vocab_size), k=len(x)))
 
     if target_lang == TargetLanguage.input:
         corpus[CorpusKey.sentence] = corpus[CorpusKey.input].map(eos_remover)
