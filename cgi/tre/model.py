@@ -62,7 +62,7 @@ class Objective(nn.Module):
         composed = self.composer.forward(input)
         if self.error_fn == "L1-distance":
             error = torch.abs(composed - target).sum()
-        if self.error_fn == "L2-distance":
+        elif self.error_fn == "L2-distance":
             error = torch.abs(composed - target).sum()
             error = (error * error).sum()
         else:
