@@ -4,6 +4,7 @@ import itertools
 import pathlib
 import matplotlib.pyplot as plt
 import numpy as np
+import sys
 
 from ..io import LogFile, make_logger
 from ..corpus import Metric, TargetLanguage
@@ -186,3 +187,7 @@ def main(params: List[str]):
             ],
             save_dir=figure_save_dir,
         )
+
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
