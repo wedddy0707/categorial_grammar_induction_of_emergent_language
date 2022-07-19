@@ -1,15 +1,24 @@
-from typing import List, Callable, Set, Dict
+from typing import Any, List, Callable, Set, Dict, Union, Tuple
 
 import pandas as pd
 import torch
 from torch.nn.functional import one_hot  # type: ignore
 import torch.optim as optim
 
-from ..semantics.semantics import Sem, convert_semantics_to_tensors_for_tre_model, SEMANTIC_PIECE_TO_ID
+from ..semantics.semantics import Sem, convert_semantics_to_tensors_for_tre_model
 from ..corpus import basic_preprocess_of_corpus_df, TargetLanguage, CorpusKey, Metric
 from .model import Composer, Objective
 
 one_hot: Callable[..., torch.Tensor]
+
+
+def recursive_max(x: Union[int, Any, List[Any], Tuple[Any]]) -> int:
+    if isinstance(x, torch.Tensor):
+        return x.max().item().__int__()
+    elif isinstance(x, (tuple, list)):
+        return max(map(recursive_max, x))
+    else:
+        return x
 
 
 def metrics_of_tre(
@@ -35,14 +44,21 @@ def metrics_of_tre(
         msgs: List[List[int, ...]] = preprocessed_corpus[CorpusKey.sentence].tolist()  # type: ignore
         sems: List[Sem] = preprocessed_corpus[CorpusKey.semantics].tolist()  # type: ignore
 
-        total_len = max(len(s) for s in msgs)
+        max_msg_symbol_id = max(map(max, msgs))
+        total_len = max(map(len, msgs))
+
         tensor_msgs: List[torch.Tensor] = [
             one_hot(
                 torch.as_tensor(x + [0] * (total_len - len(x)), dtype=torch.long),
-                num_classes=vocab_size + 1,
+                num_classes=max_msg_symbol_id + 1,
             ).permute(1, 0) for x in msgs
         ]
-        tensor_sems = [convert_semantics_to_tensors_for_tre_model(m) for m in sems]
+        tensor_sems = [
+            convert_semantics_to_tensors_for_tre_model(m) for m in sems
+        ]
+
+        max_sem_symbol_id = recursive_max(tensor_sems)
+
         dataset = list(zip(tensor_msgs, tensor_sems))
 
         if target_lang == TargetLanguage.adjacent_swapped:
@@ -53,7 +69,7 @@ def metrics_of_tre(
         metric[key] = []
 
         for _ in range(n_trains):
-            composer = Composer(max(SEMANTIC_PIECE_TO_ID.values()), vocab_size + 1, total_len)
+            composer = Composer(max_sem_symbol_id + 1, max_msg_symbol_id + 1, total_len)
             objective = Objective(composer)
             optimizer = optim.RMSprop(objective.parameters(), lr=lr)
             objective.train()
