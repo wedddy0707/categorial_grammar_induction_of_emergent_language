@@ -53,8 +53,9 @@ def get_params(params: List[str]):
     parser.add_argument("--figure_save_dir", type=str, default="./imgs")
     args = parser.parse_args(params, namespace=NameSpaceForPlot())
 
-    with pathlib.Path(args.file_of_exp_dirs).open(mode="r") as f:
-        args.exp_dirs = [pathlib.Path(line) for line in f.readlines()]
+    file_of_exp_dirs = pathlib.Path(args.file_of_exp_dirs)
+    with file_of_exp_dirs.open(mode="r") as f:
+        args.exp_dirs = [file_of_exp_dirs.parents[1] / line for line in f.readlines()]
 
     args.game_config_to_metric_scores = {}
     game_config_to_random_seeds: Dict[GameConfig, List[int]] = {}
