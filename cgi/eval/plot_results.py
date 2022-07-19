@@ -124,7 +124,7 @@ def plot_correlations_between_scores(
         assert isinstance(metric_scores_x, list)
         assert isinstance(metric_scores_y, list)
         metric_scores_x = [(x if isinstance(x, float) else 0.0) for x in metric_scores_x]
-        metric_scores_y = [(y if isinstance(y, float) else 0.0) for y in metric_scores_x]
+        metric_scores_y = [(y if isinstance(y, float) else 0.0) for y in metric_scores_y]
         ax.scatter(
             metric_scores_x,
             metric_scores_y,
@@ -158,12 +158,11 @@ def plot_comparisons_among_target_langs(
         ]
         assert all(isinstance(v, list) for v in scores)
         scores = [
-            float(e) if isinstance(e, float) else 0.0
+            [float(e) if isinstance(e, float) else 0.0 for e in v]
             for v in scores
-            for e in v
         ]
         ax.plot(
-            list(range(len(scores))),
+            list(range(len(target_langs))),
             [np.mean(v) for v in scores],
             label=repr(game_config),
         )
@@ -171,6 +170,8 @@ def plot_comparisons_among_target_langs(
     ax.legend()
     ax.set_xlabel("Language")
     ax.set_ylabel(metric.value)
+    ax.set_xticks(list(range(len(target_langs))))
+    ax.set_xticklabels([lang.value for lang in target_langs])
     if figname is None:
         figname = "comparison_langs_metric{}.png".format(
             metric.value,
