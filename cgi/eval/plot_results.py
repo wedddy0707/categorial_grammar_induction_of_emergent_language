@@ -123,6 +123,8 @@ def plot_correlations_between_scores(
         metric_scores_y = metric_scores[metric_y.value][target_lang.value]
         assert isinstance(metric_scores_x, list)
         assert isinstance(metric_scores_y, list)
+        metric_scores_x = [(x if isinstance(x, float) else 0.0) for x in metric_scores_x]
+        metric_scores_y = [(y if isinstance(y, float) else 0.0) for y in metric_scores_x]
         ax.scatter(
             metric_scores_x,
             metric_scores_y,
@@ -155,6 +157,11 @@ def plot_comparisons_among_target_langs(
             for target_lang in target_langs
         ]
         assert all(isinstance(v, list) for v in scores)
+        scores = [
+            float(e) if isinstance(e, float) else 0.0
+            for v in scores
+            for e in v
+        ]
         ax.plot(
             list(range(len(scores))),
             [np.mean(v) for v in scores],
