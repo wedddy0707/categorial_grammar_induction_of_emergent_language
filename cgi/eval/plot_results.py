@@ -178,6 +178,7 @@ def plot_comparisons_among_target_langs(
             label=repr(game_config),
         )
         ax.fill_between(
+            x_data,
             y_avg_data + y_sem_data,
             y_avg_data - y_sem_data,
             color=ax.get_lines()[-1].get_color(),
