@@ -1,4 +1,4 @@
-from typing import List, Dict, NamedTuple, Union, Optional, Sequence
+from typing import List, Dict, NamedTuple, Union, Optional, Sequence, Hashable
 import argparse
 import itertools
 import pathlib
@@ -18,7 +18,7 @@ class GameConfig(NamedTuple):
     vocab_size: int
 
 
-NestedDict = Dict[str, Union[List[float], "NestedDict"]]
+NestedDict = Dict[str, Union[Hashable, List[Hashable], "NestedDict"]]
 
 
 class NameSpaceForPlot:
@@ -38,10 +38,14 @@ def update_nested_dict(d: NestedDict, update: NestedDict):
 
         if isinstance(v, dict) and isinstance(update_v, dict):
             update_nested_dict(v, update_v)
+        elif isinstance(v, dict) or isinstance(update_v, dict):
+            raise ValueError("Error")
         elif isinstance(v, list) and isinstance(update_v, list):
             v.extend(update_v)
+        elif isinstance(v, list) or isinstance(update_v, list):
+            raise ValueError("Error")
         else:
-            assert v == update_v, (update_k, v, update_v)
+            d[update_k] = [v, update_k]
 
 
 def get_params(params: List[str]):
