@@ -39,8 +39,10 @@ class LogFile:
 
         for i, line in enumerate(self.lines):
             try:
-                info: Dict[str, Any] = json.loads(line)
+                info: Union[Dict[str, Any], Any] = json.loads(line)
             except ValueError:
+                continue
+            if not isinstance(info, dict):
                 continue
             mode: Optional[str] = info.pop("mode", None)
             epoch: Optional[int] = info.pop("epoch", None)
