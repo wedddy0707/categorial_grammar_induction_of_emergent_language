@@ -55,7 +55,7 @@ def get_params(params: List[str]):
 
     file_of_exp_dirs = pathlib.Path(args.file_of_exp_dirs)
     with file_of_exp_dirs.open(mode="r") as f:
-        args.exp_dirs = [file_of_exp_dirs.parent.parent / line for line in f.readlines()]
+        args.exp_dirs = [file_of_exp_dirs.parent.parent / line.strip() for line in f.readlines()]
         print(args.exp_dirs)
 
     args.game_config_to_metric_scores = {}
