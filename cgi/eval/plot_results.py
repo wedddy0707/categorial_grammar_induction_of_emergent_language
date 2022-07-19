@@ -81,12 +81,13 @@ def get_params(params: List[str]):
             metric_score_info = log_file.extract_learning_history(
                 "metric", log_file.max_epoch
             )
+            random_seed = metric_score_info["config_of_emergence"]["random_seed"]
+            game_config_to_random_seeds[game_config].append(random_seed)
+            metric_score_info.pop("config_of_emergence", None)
             update_nested_dict(
                 args.game_config_to_metric_scores[game_config],
                 metric_score_info,
             )
-            random_seed = metric_score_info["config_of_emergence"]["random_seed"]
-            game_config_to_random_seeds[game_config].append(random_seed)
 
     for game_config, seeds in game_config_to_random_seeds.items():
         if len(set(seeds)) < len(seeds):
