@@ -1,4 +1,4 @@
-from typing import List, Tuple, Callable, Set, Dict
+from typing import List, Callable, Set, Dict
 
 import pandas as pd
 import torch
@@ -32,19 +32,18 @@ def metrics_of_tre(
         )
 
         preprocessed_corpus = preprocessed_corpus[preprocessed_corpus[CorpusKey.split] == "train"]
-        msgs: List[Tuple[int, ...]] = preprocessed_corpus[CorpusKey.sentence].tolist()  # type: ignore
+        msgs: List[List[int, ...]] = preprocessed_corpus[CorpusKey.sentence].tolist()  # type: ignore
         sems: List[Sem] = preprocessed_corpus[CorpusKey.semantics].tolist()  # type: ignore
 
         total_len = max(len(s) for s in msgs)
         tensor_msgs: List[torch.Tensor] = [
             one_hot(
-                torch.as_tensor(tuple(x) + (0,) * (total_len - len(x)), dtype=torch.long),
+                torch.as_tensor(x + [0] * (total_len - len(x)), dtype=torch.long),
                 num_classes=vocab_size + 1,
             ).permute(1, 0) for x in msgs
         ]
         tensor_sems = [convert_semantics_to_tensors_for_tre_model(m) for m in sems]
         dataset = list(zip(tensor_msgs, tensor_sems))
-        data_size = len(dataset)
 
         if target_lang == TargetLanguage.adjacent_swapped:
             key = "{}_{}".format(target_lang.value, swap_count)
@@ -59,21 +58,21 @@ def metrics_of_tre(
             optimizer = optim.RMSprop(objective.parameters(), lr=lr)
             objective.train()
 
-            for _ in range(1, 1 + n_epochs):
+            for _ in range(n_epochs):
                 optimizer.zero_grad()
-                loss = torch.as_tensor(0, dtype=torch.float)
-                for msg, sem in dataset:
-                    loss = loss + objective.forward(sem, msg)
-                loss = loss / data_size
+                loss = sum(
+                    (objective.forward(mng, msg) for msg, mng in dataset),
+                    start=torch.as_tensor(0, dtype=torch.float),
+                ) / len(dataset)
                 loss.backward()  # type: ignore
                 optimizer.step()
 
-            tre: torch.Tensor = torch.as_tensor(0, dtype=torch.float)
             objective.eval()
             with torch.no_grad():
-                for stc, mng in dataset:
-                    tre += objective(mng, stc)
-            tre /= sum(len(m) for m in msgs)
+                tre = sum(
+                    (objective.forward(mng, msg) for msg, mng in dataset),
+                    start=torch.as_tensor(0, dtype=torch.float),
+                ) / sum(len(m) for m in msgs)
 
             metric[key].append(tre.item())
     return {Metric.tre.value: metric}
