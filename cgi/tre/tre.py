@@ -73,7 +73,7 @@ def metrics_of_tre(
             with torch.no_grad():
                 for stc, mng in dataset:
                     tre += objective(mng, stc)
-            tre /= data_size
+            tre /= sum(len(m) for m in msgs)
 
             metric[key].append(tre.item())
     return {Metric.tre.value: metric}
