@@ -1,4 +1,5 @@
 from typing import List, Dict, NamedTuple, Union, Optional, Sequence, Hashable
+from scipy.stats import pearsonr
 import argparse
 import itertools
 import pathlib
@@ -118,6 +119,8 @@ def plot_correlations_between_scores(
 ):
     fig = plt.figure(tight_layout=True)
     ax: plt.Axes = fig.add_subplot(111)
+    all_metric_scores_x: List[int] = []
+    all_metric_scores_y: List[int] = []
     for game_config, metric_scores in game_config_to_metric_scores.items():
         metric_scores_x = metric_scores[metric_x.value][target_lang.value]
         metric_scores_y = metric_scores[metric_y.value][target_lang.value]
@@ -130,9 +133,13 @@ def plot_correlations_between_scores(
             metric_scores_y,
             label=repr(game_config),
         )
+        all_metric_scores_x.extend(metric_scores_x)
+        all_metric_scores_y.extend(metric_scores_y)
+    pearson_corr = pearsonr(all_metric_scores_x, all_metric_scores_y)
     ax.legend()
     ax.set_xlabel(metric_x.value)
     ax.set_ylabel(metric_y.value)
+    ax.set_title(f"Pearson $\\rho={pearson_corr[0]}$ ($p={pearson_corr[1]}$)")
     if figname is None:
         figname = "correlation_x{}_y{}_lang{}.png".format(
             metric_x.value,
@@ -194,7 +201,7 @@ def main(params: List[str]):
             metric_y,
             save_dir=figure_save_dir,
         )
-    for metric in [Metric.cgf, Metric.cgl]:
+    for metric in [Metric.cgf, Metric.cgl, Metric.topsim, Metric.tre]:
         plot_comparisons_among_target_langs(
             args.game_config_to_metric_scores,
             metric=metric,
@@ -202,6 +209,8 @@ def main(params: List[str]):
                 TargetLanguage.input,
                 TargetLanguage.emergent,
                 TargetLanguage.adjacent_swapped_1,
+                TargetLanguage.shuffled,
+                TargetLanguage.random,
             ],
             save_dir=figure_save_dir,
         )
