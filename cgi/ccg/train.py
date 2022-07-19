@@ -26,88 +26,50 @@ class InitParamFactory:
     def __init__(
         self,
         dataset: Dataset,
-        scale: float = 1,
-        default: float = 0,
+        scale: float,
+        default: float,
     ):
         self.scale = scale
         self.default = default
 
-        cooccur_list_per_ngram: "defaultdict[int, List[Tuple[Sentence, Sem]]]" = defaultdict(list)  # noqa: E501
+        ngram_len_to_cooccurences: Dict[int, List[Tuple[Sentence, Sem]]] = {}
         for msg, lgc, _ in dataset:
-            for cnst in lgc.constant():
+            for node in lgc.constant():
                 for n in range(1, len(msg) + 1):
                     for i in range(0, len(msg) - n + 1):
-                        cooccur_list_per_ngram[n].append((msg[i:i + n], cnst))
-        self.cooccur_per_ngram = {
-            k: Counter(v) for k, v
-            in cooccur_list_per_ngram.items()}
-        self.log_all_count_per_ngram = {
+                        if n not in ngram_len_to_cooccurences:
+                            ngram_len_to_cooccurences[n] = []
+                        ngram_len_to_cooccurences[n].append((msg[i:i + n], node))
+        self.ngram_len_to_cooccurences = {
+            k: Counter(v) for k, v in ngram_len_to_cooccurences.items()
+        }
+        self.ngram_len_to_log_of_total_count_of_cooccurences = {
             k: np.log2(sum(v.values())) for k, v
-            in self.cooccur_per_ngram.items()}
-        self.log_pho_count: Dict[Tuple[Hashable, ...], int] = dict()
+            in self.ngram_len_to_cooccurences.items()
+        }
+        self.ngram_to_log_of_total_count: Dict[Tuple[Hashable, ...], int] = dict()
 
     def __call__(self, key: LexItem) -> float:
         if not key.sem.constant():
             return self.default
-        pho = key.pho
-        n = len(pho)
-        cooccur = self.cooccur_per_ngram[n]
-        log_all_count = self.log_all_count_per_ngram[n]
+        ngram = key.pho
 
-        if pho in self.log_pho_count:  # noqa: E501
-            log_pho_count = self.log_pho_count[pho]
+        cooccurences = self.ngram_len_to_cooccurences[len(ngram)]
+        log_all_count = self.ngram_len_to_log_of_total_count_of_cooccurences[len(ngram)]
+
+        if ngram in self.ngram_to_log_of_total_count:
+            log_of_ngram_count = self.ngram_to_log_of_total_count[ngram]
         else:
-            log_pho_count = np.log2(sum(
-                cooccur[p, c] for p, c in cooccur.keys() if p == pho))
-            self.log_pho_count[pho] = log_pho_count
+            log_of_ngram_count = np.log2(sum(count for (x, _), count in cooccurences.items() if x == ngram))
+            self.ngram_to_log_of_total_count[ngram] = log_of_ngram_count
 
         pmis: List[float] = []
-        for cnst in key.sem.constant():
-            log_sem_count = np.log2(sum(
-                cooccur[p, c] for p, c in cooccur.keys() if c == cnst))
+        for node in key.sem.constant():
+            log_of_node_count = np.log2(sum(count for (_, y), count in cooccurences.items() if y == node))
             pmis.append(
-                np.log2(cooccur[pho, cnst]) - log_pho_count - log_sem_count + log_all_count
+                np.log2(cooccurences[ngram, node]) - log_of_ngram_count - log_of_node_count + log_all_count
             )
         return float(np.average(pmis)) * self.scale
-
-
-def make_init_param_factory(
-    dataset: Dataset,
-    scale: float = 1,
-    default: float = 0,
-):
-    cooccur_list_per_ngram: "defaultdict[int, List[Tuple[Sentence, Sem]]]" = defaultdict(list)  # noqa: E501
-    for msg, lgc, _ in dataset:
-        for cnst in lgc.constant():
-            for n in range(1, len(msg) + 1):
-                for i in range(0, len(msg) - n + 1):
-                    cooccur_list_per_ngram[n].append((msg[i:i + n], cnst))
-
-    cooccur_per_ngram = {k: Counter(v) for k, v in cooccur_list_per_ngram.items()}  # noqa: E501
-
-    def init_param_factory(
-        key: LexItem,
-        cooccur_per_ngram: "dict[int, Counter[Tuple[Sentence, Sem]]]" = cooccur_per_ngram,  # noqa: E501
-        scale: float = scale,
-        default: float = default,
-    ):
-        if not key.sem.constant():
-            return default
-        pho = key.pho
-        cooccur = cooccur_per_ngram[len(pho)]
-        log_all_count = np.log2(sum(cooccur.values()))
-        log_pho_count = np.log2(sum(
-            cooccur[p, c] for p, c in cooccur.keys() if p == pho))
-
-        pmis: List[float] = []
-        for cnst in key.sem.constant():
-            log_sem_count = np.log2(sum(
-                cooccur[p, c] for p, c in cooccur.keys() if c == cnst))
-            pmis.append(
-                np.log2(cooccur[pho, cnst]) - log_pho_count - log_sem_count + log_all_count
-            )
-        return float(np.average(pmis)) * scale
-    return init_param_factory
 
 
 def compute_f1_score(p: Optional[float], r: float):
@@ -121,8 +83,8 @@ def compute_f1_score(p: Optional[float], r: float):
 
 
 def train(
-    train_dataset: Dataset,
-    valid_dataset: Dataset,
+    trn_dataset: Dataset,
+    dev_dataset: Dataset,
     n_epochs: int = 100,
     lr: float = 0.1,
     c: float = 0,
@@ -140,19 +102,19 @@ def train(
     parser = LogLinearCCG(
         lr=lr,
         c=c,
-        init_param_factory=InitParamFactory(train_dataset),
+        init_param_factory=InitParamFactory(trn_dataset, scale=1, default=1),
     )
     ######################
     # initialize lexicon #
     ######################
     logger.info("initializing lexicon")
-    for msg, lgc, _ in train_dataset:
+    for msg, lgc, _ in trn_dataset:
         parser.update_lexicon(LexItem(cat=BasicCat.S, sem=lgc, pho=tuple(msg)))
     ############
     # Training #
     ############
     logger.info("start training")
-    best_validation_fscore = 0
+    best_dev_fscore = 0
     best_parser = copy.deepcopy(parser)
     for epoch in range(1, n_epochs + 1):
         logger.info(
@@ -165,7 +127,7 @@ def train(
         times = [time.time()]
         old_lexicon = parser.lexicon.copy()
         new_lexicon: Set[LexItem] = set()
-        for msg, lgc, _ in random.sample(train_dataset, len(train_dataset)):
+        for msg, lgc, _ in random.sample(trn_dataset, len(trn_dataset)):
             first_parses = parser(
                 msg,
                 logical_form=lgc,
@@ -187,11 +149,11 @@ def train(
         # Accuracy Calculation #
         ########################
         times.append(time.time())
-        trn_p, trn_r, trn_f = test(parser, train_dataset, beam_size=beam_size)[:3]
-        vld_p, vld_r, vld_f = test(parser, valid_dataset, beam_size=beam_size)[:3]
+        trn_p, trn_r, trn_f = test(parser, trn_dataset, beam_size=beam_size)[:3]
+        dev_p, dev_r, dev_f = test(parser, dev_dataset, beam_size=beam_size)[:3]
         times.append(time.time())
-        if vld_f is not None and vld_f > best_validation_fscore:
-            best_validation_fscore = vld_f
+        if dev_f is not None and dev_f > best_dev_fscore:
+            best_dev_fscore = dev_f
             best_parser = copy.deepcopy(parser)
         logger.info(json.dumps({
             "mode": "train",
@@ -199,9 +161,9 @@ def train(
             "trn-p": trn_p,
             "trn-r": trn_r,
             "trn-f": trn_f,
-            "vld-p": vld_p,
-            "vld-r": vld_r,
-            "vld-f": vld_f,
+            "dev-p": dev_p,
+            "dev-r": dev_r,
+            "dev-f": dev_f,
             "size": len(parser.lexicon),
             "#new lexicon": len(parser.lexicon - old_lexicon),
             "#old lexicon": len(old_lexicon - parser.lexicon),
@@ -212,7 +174,7 @@ def train(
     ##########################################
     logger.info("make prior distribution over sentences")
     best_parser.unigram = Counter(
-        itertools.chain.from_iterable(msg for msg, _, _ in train_dataset))
+        itertools.chain.from_iterable(msg for msg, _, _ in trn_dataset))
 
     logger.setLevel(logging_level)
     return best_parser
