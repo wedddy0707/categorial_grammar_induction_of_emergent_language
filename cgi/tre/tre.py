@@ -41,7 +41,7 @@ def metrics_of_tre(
         )
 
         preprocessed_corpus = preprocessed_corpus[preprocessed_corpus[CorpusKey.split] == "train"]
-        msgs: List[List[int, ...]] = preprocessed_corpus[CorpusKey.sentence].tolist()  # type: ignore
+        msgs: List[List[int, ...]] = preprocessed_corpus[CorpusKey.sentence].map(list).tolist()  # type: ignore
         sems: List[Sem] = preprocessed_corpus[CorpusKey.semantics].tolist()  # type: ignore
 
         max_msg_symbol_id = max(map(max, msgs))
