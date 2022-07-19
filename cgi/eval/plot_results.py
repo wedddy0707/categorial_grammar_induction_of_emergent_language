@@ -17,6 +17,9 @@ class GameConfig(NamedTuple):
     max_len: int
     vocab_size: int
 
+    def __repr__(self) -> str:
+        return f"({self.max_n_predicates}, {self.max_len}, {self.vocab_size})"
+
 
 NestedDict = Dict[str, Union[Hashable, List[Hashable], "NestedDict"]]
 
@@ -175,7 +178,7 @@ def main(params: List[str]):
     figure_save_dir.mkdir(parents=True, exist_ok=True)
 
     for metric_x, metric_y in itertools.combinations(
-        [Metric.cgf, Metric.cgl, Metric.topsim, Metric.tre], r=2, 
+        [Metric.cgf, Metric.cgl, Metric.topsim, Metric.tre], r=2,
     ):
         plot_correlations_between_scores(
             args.game_config_to_metric_scores,
