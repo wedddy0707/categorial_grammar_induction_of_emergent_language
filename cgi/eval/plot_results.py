@@ -40,12 +40,14 @@ def update_nested_dict(d: NestedDict, update: NestedDict):
             update_nested_dict(v, update_v)
         elif isinstance(v, dict) or isinstance(update_v, dict):
             raise ValueError("Error")
-        elif isinstance(v, list) and isinstance(update_v, list):
-            v.extend(update_v)
-        elif isinstance(v, list) or isinstance(update_v, list):
-            raise ValueError("Error")
+        elif isinstance(v, list):
+            if isinstance(update_v, list):
+                v.extend(update_v)
+            else:
+                v.append(update_v)
         else:
-            d[update_k] = [v, update_k]
+            assert not isinstance(update_v, list), (update_k, update_v)
+            d[update_k] = [v, update_v]
 
 
 def get_params(params: List[str]):
