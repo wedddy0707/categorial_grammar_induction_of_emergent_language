@@ -1,10 +1,10 @@
 from typing import List, Dict, NamedTuple, Union, Optional, Sequence, Hashable
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr  # type: ignore
 import argparse
 import itertools
 import pathlib
 import matplotlib.pyplot as plt
-import numpy as np
+import torch
 import sys
 
 from ..io import LogFile, make_logger
@@ -119,27 +119,27 @@ def plot_correlations_between_scores(
 ):
     fig = plt.figure(tight_layout=True)
     ax: plt.Axes = fig.add_subplot(111)
-    all_metric_scores_x: List[int] = []
-    all_metric_scores_y: List[int] = []
+    all_metric_scores_x = torch.as_tensor([], dtype=torch.float)
+    all_metric_scores_y = torch.as_tensor([], dtype=torch.float)
     for game_config, metric_scores in game_config_to_metric_scores.items():
         metric_scores_x = metric_scores[metric_x.value][target_lang.value]
         metric_scores_y = metric_scores[metric_y.value][target_lang.value]
         assert isinstance(metric_scores_x, list)
         assert isinstance(metric_scores_y, list)
-        metric_scores_x = [(x if isinstance(x, float) else 0.0) for x in metric_scores_x]
-        metric_scores_y = [(y if isinstance(y, float) else 0.0) for y in metric_scores_y]
+        metric_scores_x = torch.as_tensor([(x if isinstance(x, float) else 0.0) for x in metric_scores_x])
+        metric_scores_y = torch.as_tensor([(y if isinstance(y, float) else 0.0) for y in metric_scores_y])
         ax.scatter(
             metric_scores_x,
             metric_scores_y,
             label=repr(game_config),
         )
-        all_metric_scores_x.extend(metric_scores_x)
-        all_metric_scores_y.extend(metric_scores_y)
+        all_metric_scores_x = torch.cat([all_metric_scores_x, metric_scores_x])
+        all_metric_scores_y = torch.cat([all_metric_scores_y, metric_scores_y])
     pearson_corr = pearsonr(all_metric_scores_x, all_metric_scores_y)
     ax.legend()
     ax.set_xlabel(metric_x.value)
     ax.set_ylabel(metric_y.value)
-    ax.set_title(f"Pearson $\\rho={pearson_corr[0]}$ ($p={pearson_corr[1]}$)")
+    ax.set_title(f"Pearson $r={pearson_corr[0]}$ ($p={pearson_corr[1]}$)")
     if figname is None:
         figname = "correlation_x{}_y{}_lang{}.png".format(
             metric_x.value,
@@ -168,12 +168,21 @@ def plot_comparisons_among_target_langs(
             [float(e) if isinstance(e, float) else 0.0 for e in v]
             for v in scores
         ]
+        y_data = torch.as_tensor(scores, dtype=torch.float)
+        x_data = torch.arange(y_data.shape[0])
+        y_avg_data = y_data.mean(dim=-1)
+        y_sem_data = y_data.std(dim=-1, unbiased=True) / torch.sqrt(torch.as_tensor(y_data.shape[0])).item()
         ax.plot(
-            list(range(len(target_langs))),
-            [np.mean(v) for v in scores],
+            x_data,
+            y_avg_data,
             label=repr(game_config),
         )
-        # TODO: Use ax.fill_between
+        ax.fill_between(
+            y_avg_data + y_sem_data,
+            y_avg_data - y_sem_data,
+            color=ax.get_lines()[-1].get_color(),
+            alpha=0.1,
+        )
     ax.legend()
     ax.set_xlabel("Language")
     ax.set_ylabel(metric.value)
