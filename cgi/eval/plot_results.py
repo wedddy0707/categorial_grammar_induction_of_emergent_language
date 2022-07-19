@@ -172,6 +172,7 @@ def main(params: List[str]):
     args = get_params(params)
 
     figure_save_dir = pathlib.Path(args.figure_save_dir)
+    figure_save_dir.mkdir(parents=True, exist_ok=True)
 
     for metric_x, metric_y in itertools.combinations(
         [Metric.cgf, Metric.cgl, Metric.topsim, Metric.tre], r=2, 
