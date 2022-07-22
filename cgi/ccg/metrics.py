@@ -81,7 +81,7 @@ def metrics_of_induced_categorial_grammar(
             #########
             # Train #
             #########
-            parser = train(
+            train_info = train(
                 trn_dataset,
                 dev_dataset,
                 n_epochs=n_epochs,
@@ -89,6 +89,10 @@ def metrics_of_induced_categorial_grammar(
                 c=c,
                 beam_size=beam_size,
                 show_progress=show_train_progress,
+            )
+            parser = train_info.best_parser
+            logger.info(
+                f"Best Parser at epoch {train_info.best_epoch}"
             )
             ########
             # Test #

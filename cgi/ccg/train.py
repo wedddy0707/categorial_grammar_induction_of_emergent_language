@@ -22,6 +22,26 @@ Sentence = Tuple[Hashable, ...]
 Dataset = Sequence[Tuple[Sentence, Sem, Sequence[int]]]
 
 
+class TrainReturnInfo(NamedTuple):
+    final_parser: LogLinearCCG
+    best_parser: LogLinearCCG
+    best_epoch: int
+
+
+class TestReturnInfo(NamedTuple):
+    precision: Optional[float]
+    recall: float
+    f1score: Optional[float]
+    visualized_top_score_parses: Tuple[str, ...]
+    word_sequences: Tuple[Tuple[Tuple[Hashable, ...], ...], ...]
+
+
+class SurfaceRealizationReturnInfo(NamedTuple):
+    realized_sentences: Tuple[Sentence, ...]
+    edit_distances: Tuple[int, ...]
+    logging_infos: Tuple[str, ...]
+
+
 class InitParamFactory:
     def __init__(
         self,
@@ -130,6 +150,7 @@ def train(
     ############
     logger.info("start training")
     best_dev_fscore: float = 0
+    best_epoch: int = 0
     best_parser = copy.deepcopy(parser)
     for epoch in range(1, n_epochs + 1):
         logger.info(
@@ -184,6 +205,7 @@ def train(
             pass
         elif ((dev_f > best_dev_fscore) or (dev_f == best_dev_fscore and len(parser.lexicon) < len(best_parser.lexicon))):
             best_dev_fscore = dev_f
+            best_epoch = epoch
             best_parser = copy.deepcopy(parser)
         logger.info(json.dumps({
             "mode": "train",
@@ -207,15 +229,11 @@ def train(
         itertools.chain.from_iterable(msg for msg, _, _ in trn_dataset))
 
     logger.setLevel(logging_level)
-    return best_parser
-
-
-class TestReturnInfo(NamedTuple):
-    precision: Optional[float]
-    recall: float
-    f1score: Optional[float]
-    visualized_top_score_parses: Tuple[str, ...]
-    word_sequences: Tuple[Tuple[Tuple[Hashable, ...], ...], ...]
+    return TrainReturnInfo(
+        final_parser=parser,
+        best_parser=best_parser,
+        best_epoch=best_epoch,
+    )
 
 
 def test(
@@ -270,12 +288,6 @@ def test(
         visualized_top_score_parses=tuple(visualized_top_score_parses),
         word_sequences=tuple(word_sequences),
     )
-
-
-class SurfaceRealizationReturnInfo(NamedTuple):
-    realized_sentences: Tuple[Sentence, ...]
-    edit_distances: Tuple[int, ...]
-    logging_infos: Tuple[str, ...]
 
 
 def surface_realization(
