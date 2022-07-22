@@ -30,4 +30,6 @@ class Metric(enum.Enum):
     tre = "TRE"
     cgf = "CGF"
     cgl = "CGL"
+    cgt = "CGT"
+    cgs = "CGS"
     cgi = "CGI-general-info"
