@@ -1,7 +1,7 @@
 import dataclasses
 import enum
 from torch.utils.data import Dataset
-from typing import Set, Tuple, Dict, Type, List, Union
+from typing import Set, Tuple, Dict, Type, List, Union, Optional
 import torch
 from numpy.random import RandomState
 
@@ -31,6 +31,12 @@ class Sem:
     def constant(self) -> Tuple["Const", ...]:
         return ()
 
+    def subsumes(self, arg: "Sem") -> bool:
+        raise NotImplementedError
+
+    def get_map_from_var_to_subsumed_sem(self, arg: "Sem") -> Optional[Dict["Var", "Sem"]]:
+        raise NotImplementedError
+
 
 class Const(Sem, enum.Enum):
     CIRCLE = enum.auto()
@@ -47,6 +53,12 @@ class Const(Sem, enum.Enum):
     def constant(self) -> Tuple["Const", ...]:
         return (self,)
 
+    def subsumes(self, arg: Sem) -> bool:
+        return self == arg
+
+    def get_map_from_var_to_subsumed_sem(self, arg: Sem) -> Optional[Dict["Var", Sem]]:
+        return {} if self == arg else None
+
 
 class Var(str, Sem):
     def n_nodes(self) -> int:
@@ -54,6 +66,12 @@ class Var(str, Sem):
 
     def fv(self) -> Set["Var"]:
         return {self}
+
+    def subsumes(self, arg: Sem) -> bool:
+        return True
+
+    def get_map_from_var_to_subsumed_sem(self, arg: Sem) -> Dict["Var", Sem]:
+        return {self: arg}
 
 
 @dataclasses.dataclass(frozen=True)
@@ -95,6 +113,17 @@ class Lambda(Sem):
     def constant(self) -> Tuple[Const, ...]:
         return self.body.constant()
 
+    def subsumes(self, arg: "Sem") -> bool:
+        return isinstance(arg, Lambda) and self.body.subsumes(arg.body)
+
+    def get_map_from_var_to_subsumed_sem(self, arg: Sem) -> Optional[Dict["Var", Sem]]:
+        if isinstance(arg, Lambda):
+            m = self.body.get_map_from_var_to_subsumed_sem(arg)
+            if isinstance(m, dict):
+                m.pop(self.arg, None)
+            return m
+        return None
+
 
 @dataclasses.dataclass(frozen=True)
 class BinaryPredicate(Sem):
@@ -126,6 +155,27 @@ class BinaryPredicate(Sem):
 
     def constant(self) -> Tuple[Const, ...]:
         return self.fst.constant() + self.snd.constant()
+
+    def subsumes(self, arg: Sem) -> bool:
+        return \
+            isinstance(arg, BinaryPredicate) \
+            and self.__class__ == arg.__class__ \
+            and self.fst.subsumes(arg.fst) \
+            and self.snd.subsumes(arg.snd)
+
+    def get_map_from_var_to_subsumed_sem(self, arg: Sem) -> Optional[Dict["Var", Sem]]:
+        if isinstance(arg, BinaryPredicate) and self.__class__ == arg.__class__:
+            m_fst = self.fst.get_map_from_var_to_subsumed_sem(arg.fst)
+            if m_fst is None:
+                return None
+            m_snd = self.snd.get_map_from_var_to_subsumed_sem(arg.snd)
+            if m_snd is None:
+                return None
+            if any(m_fst[k] != m_snd[k] for k in set(m_fst) & set(m_snd)):
+                return None
+            m_fst.update(m_snd)
+            return m_fst
+        return None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -234,7 +284,7 @@ class SemanticsDataset(Dataset[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]])
 
         full_data_list = enumerate_semantics(n_predicates)
 
-        RandomState(random_seed).shuffle(full_data_list)
+        RandomState(random_seed).shuffle(full_data_list)  # type: ignore
 
         split_index = int((1 - test_p) * len(full_data_list))
 
