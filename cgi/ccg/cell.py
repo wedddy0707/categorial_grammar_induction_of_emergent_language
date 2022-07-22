@@ -14,6 +14,31 @@ class Derivation:
     def __bool__(self):
         return True
 
+    # For heap sort
+    # Note the **larger** self.score is, the **smaller** self is w.r.t heap sort.
+    def __lt__(self, other: "Derivation"):
+        return \
+            self.score > other.score or \
+            (self.score == other.score and repr(self.item) > repr(other.item))
+
+    # For heap sort
+    def __le__(self, other: "Derivation"):
+        return \
+            self.score >= other.score or \
+            (self.score == other.score and repr(self.item) >= repr(other.item))
+
+    # For heap sort
+    def __gt__(self, other: "Derivation"):
+        return \
+            self.score < other.score or \
+            (self.score == other.score and repr(self.item) < repr(other.item))
+
+    # For heap sort
+    def __ge__(self, other: "Derivation"):
+        return \
+            self.score <= other.score or \
+            (self.score == other.score and repr(self.item) <= repr(other.item))
+
     @property
     def lexitems(self):
         items: Set[LexItem] = set()
@@ -25,7 +50,6 @@ class Derivation:
                 items.add(e.item)
         return items
 
-    @property
     def word_sequence(self):
         seq: List[Tuple[Hashable, ...]] = []
         queue = [self]
@@ -34,7 +58,7 @@ class Derivation:
             queue += list(e.backptrs)
             if e.is_leaf():
                 seq.append(e.item.pho)
-        return seq
+        return tuple(seq)
 
     def is_leaf(self):
         return len(self.backptrs) == 0
