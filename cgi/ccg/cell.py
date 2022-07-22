@@ -15,7 +15,7 @@ class Derivation:
         return True
 
     # For heap sort
-    # Note the **larger** self.score is, the **smaller** self is w.r.t heap sort.
+    # Note the **larger** self.score is, the **smaller** self is w.r.t sort.
     def __lt__(self, other: "Derivation"):
         return \
             self.score > other.score or \

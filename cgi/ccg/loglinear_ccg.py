@@ -1,5 +1,4 @@
 import heapq
-import copy
 import itertools
 from collections import Counter, defaultdict
 from typing import Callable, Dict, Hashable, List, Optional, Set, Tuple, Union
@@ -206,43 +205,43 @@ class LogLinearCCG:
                     )
                 )
 
+        def prune_fn(x: List[Derivation], b: Optional[int] = beam_size) -> List[Derivation]:
+            if b is None or len(x) < b:
+                return x
+            else:
+                return heapq.nsmallest(b, x)
+                # return sorted(x)[:b]
+
         cell: "defaultdict[Tuple[int, int], List[Derivation]]" = defaultdict(list)
 
         for width in range(len(sentence) + 1):
             for i in range(len(sentence) - width + 1):
                 j = i + width
 
-                for item in pho_to_lexicon[sentence[i:j]]:
-                    heapq.heappush(cell[i, j], item)
+                cell[i, j].extend(pho_to_lexicon[sentence[i:j]])
 
                 for k in range(i + 1, j):
-                    derivs_1 = copy.deepcopy(cell[i, k])
-                    derivs_2 = copy.deepcopy(cell[k, j])
-                    beam_size_1 = min(len(derivs_1), (len(derivs_1) if beam_size is None else beam_size))
-                    beam_size_2 = min(len(derivs_2), (len(derivs_2) if beam_size is None else beam_size))
-                    beam_1 = [heapq.heappop(derivs_1) for _ in range(beam_size_1)]
-                    beam_2 = [heapq.heappop(derivs_2) for _ in range(beam_size_2)]
-                    for deriv_1 in beam_1:
-                        for deriv_2 in beam_2:
+                    derivs_1 = prune_fn(cell[i, k])
+                    derivs_2 = prune_fn(cell[k, j])
+                    for deriv_1 in derivs_1:
+                        for deriv_2 in derivs_2:
                             if deriv_1.item.can_take_as_right_arg(deriv_2.item):
                                 item = deriv_1.item.takes_as_right_arg(deriv_2.item)
-                                heapq.heappush(
-                                    cell[i, j],
+                                cell[i, j].append(
                                     Derivation(
                                         item=item,
                                         score=(deriv_1.score + deriv_2.score),
                                         backptrs=(deriv_1, deriv_2),
-                                    ),
+                                    )
                                 )
                             elif deriv_2.item.can_take_as_left_arg(deriv_1.item):
                                 item = deriv_2.item.takes_as_left_arg(deriv_1.item)
-                                heapq.heappush(
-                                    cell[i, j],
+                                cell[i, j].append(
                                     Derivation(
                                         item=item,
                                         score=(deriv_1.score + deriv_2.score),
                                         backptrs=(deriv_1, deriv_2),
-                                    ),
+                                    )
                                 )
         derivs = cell[0, len(sentence)]
         derivs = filter(lambda x: x.item.cat == BasicCat.S, derivs)
