@@ -1,8 +1,8 @@
 import dataclasses
 import enum
-from typing import Hashable, Literal, Optional, Tuple
+from typing import Hashable, Literal, Optional, Tuple, Union
 
-from ..semantics.semantics import Sem
+from ..semantics.semantics import Sem, Lambda, Var
 
 
 class Cat:
@@ -46,6 +46,12 @@ class FunctCat(Cat):
 
 
 @dataclasses.dataclass(frozen=True)
+class TransductionRule:
+    lhs: Sem
+    rhs: Tuple[Union[Tuple[Hashable, ...], Var], ...]
+
+
+@dataclasses.dataclass(frozen=True)
 class LexItem:
     cat: Cat
     sem: Sem
@@ -58,6 +64,18 @@ class LexItem:
 
     def __str__(self):
         return f"{self.pho} |- {self.cat}: {self.sem}"
+
+    def __lt__(self, other: "LexItem"):
+        return repr(self) < repr(other)
+
+    def __le__(self, other: "LexItem"):
+        return repr(self) <= repr(other)
+
+    def __gt__(self, other: "LexItem"):
+        return repr(self) > repr(other)
+
+    def __ge__(self, other: "LexItem"):
+        return repr(self) >= repr(other)
 
     def to_latex_equation(self) -> str:
         return f"{self.pho} \\vdash {self.cat}: {self.sem}"
@@ -89,3 +107,15 @@ class LexItem:
             sem=self.sem,
             pho=pho,
         )
+
+    def to_transduction_rule(self):
+        rhs = (self.pho,)
+        cat: Cat = self.cat
+        sem: Sem = self.sem
+        while isinstance(cat, FunctCat):
+            assert isinstance(sem, Lambda)
+            rhs = rhs + (sem.arg,) if cat.slash == "/" else (sem.arg,) + rhs
+            cat = cat.cod
+            sem = sem.body
+        lhs = sem
+        return TransductionRule(lhs=lhs, rhs=rhs)
