@@ -2,6 +2,7 @@ from typing import Tuple, Union, Literal
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 MeaningTensor = Union[Tuple["MeaningTensor", "MeaningTensor"], torch.Tensor]
 
@@ -63,8 +64,14 @@ class Objective(nn.Module):
         if self.error_fn == "L1-distance":
             error = torch.abs(composed - target).sum()
         elif self.error_fn == "L2-distance":
-            error = torch.abs(composed - target).sum()
+            error = torch.abs(composed - target)
             error = (error * error).sum()
+        elif self.error_fn == "cross_entropy":
+            error = F.cross_entropy(
+                composed.permute(1, 0),
+                target.argmax(dim=0),
+                reduction="none",
+            ).sum()
         else:
             raise NotImplementedError
 
