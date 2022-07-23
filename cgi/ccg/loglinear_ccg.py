@@ -1,13 +1,13 @@
 import heapq
 import itertools
 from collections import Counter, defaultdict
-from typing import Callable, Dict, Hashable, List, Optional, Set, Tuple, Union
+from typing import Callable, Dict, Hashable, List, Optional, Set, Tuple
 
 import numpy as np
 import numpy.typing as npt
 
 from .cell import Derivation
-from .lexitem import BasicCat, LexItem, Sem, TransductionRule, Var
+from .lexitem import Cat, BasicCat, FunctCat, LexItem, Sem, TransductionRule, Var
 
 
 class NoDerivationObtained(Exception):
@@ -82,37 +82,16 @@ class LogLinearCCG:
         return self.__lexicon
 
     @lexicon.setter
-    def lexicon(self, x: Lexicon):
-        assert isinstance(x, set), x
-        assert all(isinstance(e, LexItem) for e in x), x
-        self.__lexicon = x
+    def lexicon(self, lexicon: Lexicon):
+        assert isinstance(lexicon, set), lexicon
+        assert all(isinstance(item, LexItem) for item in lexicon), lexicon
+        self.__lexicon = lexicon
         self.__pho_to_lexicon = defaultdict(set)
-        for e in x:
-            self.__pho_to_lexicon[e.pho].add(
-                Derivation(
-                    item=e,
-                    score=self.params[e],
-                ),
-            )
-
-    def update_lexicon(self, x: Union[Lexicon, LexItem]):
-        if isinstance(x, LexItem):
-            self.__lexicon.add(x)
-            self.__pho_to_lexicon[x.pho].add(
-                Derivation(
-                    item=x,
-                    score=self.params[x],
-                ),
-            )
-        else:
-            for e in x - self.__lexicon:
-                self.__lexicon.add(e)
-                self.__pho_to_lexicon[e.pho].add(
-                    Derivation(
-                        item=e,
-                        score=self.params[e],
-                    ),
-                )
+        [
+            self.__pho_to_lexicon[item.pho].add(
+                Derivation(item, self.params[item])
+            ) for item in lexicon
+        ]
 
     @property
     def unigram(self):
@@ -194,16 +173,8 @@ class LogLinearCCG:
         if lexicon is None:
             pho_to_lexicon = self.__pho_to_lexicon
         else:
-            pho_to_lexicon: Dict[Tuple[Hashable, ...], Set[Derivation]] = {}
-            for e in sorted(lexicon):
-                if e.pho not in pho_to_lexicon:
-                    pho_to_lexicon[e.pho] = set()
-                pho_to_lexicon[e.pho].add(
-                    Derivation(
-                        item=e,
-                        score=self.params[e],
-                    )
-                )
+            pho_to_lexicon: "defaultdict[Tuple[Hashable, ...], Set[Derivation]]" = defaultdict(set)
+            [pho_to_lexicon[item.pho].add(Derivation(item=item, score=self.params[item])) for item in sorted(lexicon)]
 
         def prune_fn(x: List[Derivation], b: Optional[int] = beam_size) -> List[Derivation]:
             if b is None or len(x) < b:
@@ -217,32 +188,37 @@ class LogLinearCCG:
         for width in range(len(sentence) + 1):
             for i in range(len(sentence) - width + 1):
                 j = i + width
-
                 cell[i, j].extend(pho_to_lexicon[sentence[i:j]])
-
                 for k in range(i + 1, j):
-                    derivs_1 = prune_fn(cell[i, k])
-                    derivs_2 = prune_fn(cell[k, j])
-                    for deriv_1 in derivs_1:
-                        for deriv_2 in derivs_2:
-                            if deriv_1.item.can_take_as_right_arg(deriv_2.item):
-                                item = deriv_1.item.takes_as_right_arg(deriv_2.item)
-                                cell[i, j].append(
-                                    Derivation(
-                                        item=item,
-                                        score=(deriv_1.score + deriv_2.score),
-                                        backptrs=(deriv_1, deriv_2),
-                                    )
-                                )
-                            elif deriv_2.item.can_take_as_left_arg(deriv_1.item):
-                                item = deriv_2.item.takes_as_left_arg(deriv_1.item)
-                                cell[i, j].append(
-                                    Derivation(
-                                        item=item,
-                                        score=(deriv_1.score + deriv_2.score),
-                                        backptrs=(deriv_1, deriv_2),
-                                    )
-                                )
+                    derivs_l = prune_fn(cell[i, k])
+                    derivs_r = prune_fn(cell[k, j])
+                    cats_l: "defaultdict[Cat, List[Derivation]]" = defaultdict(list)
+                    cats_r: "defaultdict[Cat, List[Derivation]]" = defaultdict(list)
+                    [cats_l[deriv.item.cat].append(deriv) for deriv in derivs_l]
+                    [cats_r[deriv.item.cat].append(deriv) for deriv in derivs_r]
+                    [
+                        cell[i, j].extend(
+                            Derivation(
+                                item=deriv_l.item.takes_as_right_arg(deriv_r.item),
+                                score=(deriv_l.score + deriv_r.score),
+                                backptrs=(deriv_l, deriv_r),
+                            )
+                            for deriv_l in cats_l[cat_l]
+                            for deriv_r in cats_r[cat_r]
+                        ) if isinstance(cat_l, FunctCat) and cat_l.slash == "/" and cat_l.dom == cat_r
+                        else cell[i, j].extend(
+                            Derivation(
+                                item=deriv_r.item.takes_as_left_arg(deriv_l.item),
+                                score=(deriv_l.score + deriv_r.score),
+                                backptrs=(deriv_l, deriv_r),
+                            )
+                            for deriv_l in cats_l[cat_l]
+                            for deriv_r in cats_r[cat_r]
+                        ) if isinstance(cat_r, FunctCat) and cat_r.slash == "\\" and cat_r.dom == cat_l
+                        else None
+                        for cat_l in cats_l.keys()
+                        for cat_r in cats_r.keys()
+                    ]
         derivs = cell[0, len(sentence)]
         derivs = filter(lambda x: x.item.cat == BasicCat.S, derivs)
         if logical_form is not None:

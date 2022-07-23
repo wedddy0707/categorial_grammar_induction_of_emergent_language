@@ -143,8 +143,10 @@ def train(
     # initialize lexicon #
     ######################
     logger.info("initializing lexicon")
-    for msg, lgc, _ in trn_dataset:
-        parser.update_lexicon(LexItem(cat=BasicCat.S, sem=lgc, pho=tuple(msg)))
+    parser.lexicon = {
+        LexItem(cat=BasicCat.S, sem=lgc, pho=tuple(msg))
+        for msg, lgc, _ in trn_dataset
+    }
     ############
     # Training #
     ############
@@ -166,7 +168,7 @@ def train(
         # Splitting lexical entries
         tmp_lexicon: Set[LexItem] = set()
         for msg, lgc, _ in trn_dataset:
-            first_parses = parser(msg, logical_form=lgc, beam_size=beam_size)
+            first_parses = parser.parse(msg, logical_form=lgc, beam_size=beam_size)
             if len(first_parses) > 0:
                 first_parses_top_score = max(p.score for p in first_parses)
                 top_score_first_parses = filter(lambda x: x.score == first_parses_top_score, first_parses)
@@ -182,13 +184,13 @@ def train(
             ),
         ):
             parser.zero_grad()
-            second_parses = parser(msg, beam_size=beam_size)
+            second_parses = parser.parse(msg, beam_size=beam_size)
             parser.calc_grad(second_parses, lgc)
             parser.update_params()
         # Lexicon Pruning
         new_lexicon: Set[LexItem] = set()
         for msg, lgc, _ in trn_dataset:
-            third_parses = parser(msg, logical_form=lgc, beam_size=beam_size)
+            third_parses = parser.parse(msg, logical_form=lgc, beam_size=beam_size)
             if len(third_parses) > 0:
                 third_parses_top_score = max(p.score for p in third_parses)
                 top_score_third_parses = filter(lambda x: x.score == third_parses_top_score, third_parses)
