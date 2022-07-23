@@ -49,15 +49,15 @@ def genlex_split_style(
 
 
 def newlex(parse: Derivation):
-    items: Set[LexItem] = set()
+    items: Set[LexItem] = set(parse.lexitems)
+    # Merge Lexical Items
     queue = [parse]
     while queue:
         e = queue.pop(-1)
-        backptrs = e.backptrs
-        if not e.is_leaf():
+        queue.extend(e.backptrs)
+        if e.is_preleaf():
             items.add(e.item)
-        else:
-            queue.extend(backptrs)
+    # Split Lexical Items
     items = items.union(*(split(e, recursive=False, enable_filler=False) for e in parse.lexitems))
     return items
 
@@ -79,7 +79,7 @@ def split(
     recursive: bool = True,
     enable_filler: bool = False,
 ):
-    items = {lexitem}
+    items: Set[LexItem] = set()
     queue = [lexitem]
 
     while queue:

@@ -1,6 +1,6 @@
 import dataclasses
 import math
-from typing import List, Sequence, Set, Tuple, Hashable
+from typing import List, Sequence, Tuple, Hashable
 
 from .lexitem import LexItem
 
@@ -41,13 +41,13 @@ class Derivation:
 
     @property
     def lexitems(self):
-        items: Set[LexItem] = set()
+        items: List[LexItem] = []
         queue = [self]
         while queue:
             e = queue.pop(-1)
             queue += list(e.backptrs)
             if e.is_leaf():
-                items.add(e.item)
+                items.append(e.item)
         return items
 
     def word_sequence(self):
@@ -62,6 +62,9 @@ class Derivation:
 
     def is_leaf(self):
         return len(self.backptrs) == 0
+
+    def is_preleaf(self):
+        return all(x.is_leaf() for x in self.backptrs)
 
     def is_unary_branch(self):
         return len(self.backptrs) == 1

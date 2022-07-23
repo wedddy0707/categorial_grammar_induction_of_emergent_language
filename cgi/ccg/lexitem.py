@@ -21,7 +21,7 @@ class BasicCat(Cat, enum.Enum):
 @dataclasses.dataclass(frozen=True)
 class FunctCat(Cat):
     cod: Cat
-    slash: str
+    slash: Literal["/", "\\"]
     dom: Cat
 
     def __post_init__(self):
