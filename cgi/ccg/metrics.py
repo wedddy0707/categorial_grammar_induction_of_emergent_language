@@ -15,7 +15,7 @@ def metrics_of_induced_categorial_grammar(
     corpus: pd.DataFrame,
     target_langs: Set[TargetLanguage],
     swap_count: int = 1,
-    n_epochs: int = 100,
+    n_epochs: int = 20,
     n_trains: int = 1,
     lr: float = 0.1,
     c: float = 0.1,
@@ -106,12 +106,12 @@ def metrics_of_induced_categorial_grammar(
                 f"For dev data:   precision={dev_eval.precision}, recall={dev_eval.recall}, F1={dev_eval.f1score}.\n"
                 f"For test data:  precision={tst_eval.precision}, recall={tst_eval.recall}, F1={tst_eval.f1score}."
             )
-            tst_realization = surface_realization(parser, tst_dataset, beam_size=beam_size)
-            logger.info(
-                "\n".join(
-                    ("Surface Realization Results for Test Data",) + tst_realization.logging_infos
-                )
-            )
+            # tst_realization = surface_realization(parser, tst_dataset, beam_size=beam_size)
+            # logger.info(
+            #     "\n".join(
+            #         ("Surface Realization Results for Test Data",) + tst_realization.logging_infos
+            #     )
+            # )
             ######################
             # Some visualization #
             ######################
@@ -138,9 +138,9 @@ def metrics_of_induced_categorial_grammar(
             metric[Metric.cgt.value][key].append(
                 compute_topsim(trn_eval.word_sequences, [i for _, _, i in trn_dataset])
             )
-            metric[Metric.cgs.value][key].append(
-                sum(tst_realization.edit_distances) / len(tst_realization.edit_distances)
-            )
+            # metric[Metric.cgs.value][key].append(
+            #     sum(tst_realization.edit_distances) / len(tst_realization.edit_distances)
+            # )
         end_time = time.time()
         logger.info(f"Processing time: {end_time - start_time}s")
     return metric
