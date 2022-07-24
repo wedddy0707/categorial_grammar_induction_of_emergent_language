@@ -1,5 +1,6 @@
 from typing import List, Dict, NamedTuple, Union, Optional, Sequence, Hashable
 from scipy.stats import pearsonr  # type: ignore
+from collections import defaultdict
 import argparse
 import itertools
 import pathlib
@@ -14,12 +15,12 @@ logger = make_logger(__name__)
 
 
 class GameConfig(NamedTuple):
-    max_n_predicates: int
+    n_predicates: int
     max_len: int
     vocab_size: int
 
     def __repr__(self) -> str:
-        return f"({self.max_n_predicates}, {self.max_len}, {self.vocab_size})"
+        return f"({self.n_predicates}, {self.max_len}, {self.vocab_size})"
 
 
 NestedDict = Dict[str, Union[Hashable, List[Hashable], "NestedDict"]]
@@ -109,6 +110,19 @@ def get_params(params: List[str]):
     return args
 
 
+def aggregate_metric_scores_when_target_lang_is_input(
+    game_config_to_metric_scores: Dict[GameConfig, NestedDict],
+):
+    n_predicates_to_metric_to_scores: "defaultdict[int, defaultdict[str, List[Hashable]]]" = defaultdict(lambda: defaultdict(list))
+    for game_config, metric_scores in game_config_to_metric_scores.items():
+        for metric, target_lang_to_scores in metric_scores.items():
+            assert isinstance(target_lang_to_scores, dict), target_lang_to_scores
+            scores = target_lang_to_scores[TargetLanguage.input.value]
+            assert isinstance(scores, list)
+            n_predicates_to_metric_to_scores[game_config.n_predicates][metric].extend(scores)
+    return n_predicates_to_metric_to_scores
+
+
 def plot_correlations_between_scores(
     game_config_to_metric_scores: Dict[GameConfig, NestedDict],
     metric_x: Metric,
@@ -139,7 +153,7 @@ def plot_correlations_between_scores(
     ax.legend()
     ax.set_xlabel(metric_x.value)
     ax.set_ylabel(metric_y.value)
-    ax.set_title(f"Pearson $r={pearson_corr[0]}$ ($p={pearson_corr[1]}$)")
+    ax.set_title(f"Pearson $r={pearson_corr[0]:.5f}$ ($p={pearson_corr[1]:.5f}$)")
     if figname is None:
         figname = "correlation_x{}_y{}_lang{}.png".format(
             metric_x.value,
@@ -151,6 +165,7 @@ def plot_correlations_between_scores(
 
 def plot_comparisons_among_target_langs(
     game_config_to_metric_scores: Dict[GameConfig, NestedDict],
+    n_predicates_to_metric_to_scores_for_input_lang: "defaultdict[int, defaultdict[str, List[Hashable]]]",
     metric: Metric,
     target_langs: Sequence[TargetLanguage],
     figname: Optional[str] = None,
@@ -160,6 +175,8 @@ def plot_comparisons_among_target_langs(
     ax: plt.Axes = fig.add_subplot(111)
     for game_config, metric_scores in game_config_to_metric_scores.items():
         scores = [
+            n_predicates_to_metric_to_scores_for_input_lang[game_config.n_predicates][metric.value]
+            if target_lang == TargetLanguage.input else
             metric_scores[metric.value][target_lang.value]
             for target_lang in target_langs
         ]
@@ -203,7 +220,7 @@ def main(params: List[str]):
     figure_save_dir.mkdir(parents=True, exist_ok=True)
 
     for metric_x, metric_y in itertools.combinations(
-        [Metric.cgf, Metric.cgl, Metric.topsim, Metric.tre], r=2,
+        [Metric.cgf, Metric.cgl, Metric.cgt, Metric.topsim, Metric.tre], r=2,
     ):
         plot_correlations_between_scores(
             args.game_config_to_metric_scores,
@@ -211,9 +228,13 @@ def main(params: List[str]):
             metric_y,
             save_dir=figure_save_dir,
         )
-    for metric in [Metric.cgf, Metric.cgl, Metric.topsim, Metric.tre]:
+    n_predicates_to_metric_to_scores = aggregate_metric_scores_when_target_lang_is_input(
+        args.game_config_to_metric_scores
+    )
+    for metric in [Metric.cgf, Metric.cgl, Metric.cgt, Metric.topsim, Metric.tre]:
         plot_comparisons_among_target_langs(
             args.game_config_to_metric_scores,
+            n_predicates_to_metric_to_scores,
             metric=metric,
             target_langs=[
                 TargetLanguage.input,
