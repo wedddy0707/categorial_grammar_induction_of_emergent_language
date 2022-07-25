@@ -189,8 +189,9 @@ def plot_comparisons_among_target_langs(
             for target_lang in target_langs
         ]
         assert all(isinstance(v, list) for v in scores)
+        min_n_samples = min(len(x) for x in scores)
         scores = [
-            [float(e) if isinstance(e, float) else 0.0 for e in v]
+            [float(e) if is_defined_float(e) else 0.0 for e in v][:min_n_samples]
             for v in scores
         ]
         y_data = torch.as_tensor(scores, dtype=torch.float)
