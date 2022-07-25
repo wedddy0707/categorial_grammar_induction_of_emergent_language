@@ -124,10 +124,10 @@ def aggregate_metric_scores_when_target_lang_is_input(
     n_predicates_to_metric_to_scores: "defaultdict[int, defaultdict[str, List[Hashable]]]" = defaultdict(lambda: defaultdict(list))
     for game_config, metric_scores in game_config_to_metric_scores.items():
         for metric, target_lang_to_scores in metric_scores.items():
-            assert isinstance(target_lang_to_scores, dict), target_lang_to_scores
-            scores = target_lang_to_scores[TargetLanguage.input.value]
-            assert isinstance(scores, list)
-            n_predicates_to_metric_to_scores[game_config.n_predicates][metric].extend(scores)
+            if isinstance(target_lang_to_scores, dict) and TargetLanguage.input.value in target_lang_to_scores:
+                scores = target_lang_to_scores[TargetLanguage.input.value]
+                assert isinstance(scores, list)
+                n_predicates_to_metric_to_scores[game_config.n_predicates][metric].extend(scores)
     return n_predicates_to_metric_to_scores
 
 
