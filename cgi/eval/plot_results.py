@@ -1,4 +1,4 @@
-from typing import List, Dict, NamedTuple, Union, Optional, Sequence, Hashable
+from typing import List, Dict, NamedTuple, Union, Optional, Sequence, Hashable, Any
 from scipy.stats import pearsonr  # type: ignore
 from collections import defaultdict
 import argparse
@@ -6,6 +6,7 @@ import itertools
 import pathlib
 import matplotlib.pyplot as plt
 import torch
+import numpy as np
 import sys
 
 from ..io import LogFile, make_logger
@@ -31,6 +32,13 @@ class NameSpaceForPlot:
     figure_save_dir: str
     exp_dirs: List[pathlib.Path]
     game_config_to_metric_scores: Dict[GameConfig, NestedDict]
+
+
+def is_defined_float(x: Any):
+    return \
+        (x is not None) and \
+        (not np.isnan(x)) and \
+        (not np.isinf(x))
 
 
 def update_nested_dict(d: NestedDict, update: NestedDict):
@@ -140,8 +148,8 @@ def plot_correlations_between_scores(
         metric_scores_y = metric_scores[metric_y.value][target_lang.value]
         assert isinstance(metric_scores_x, list)
         assert isinstance(metric_scores_y, list)
-        metric_scores_x = torch.as_tensor([(x if isinstance(x, float) else 0.0) for x in metric_scores_x])
-        metric_scores_y = torch.as_tensor([(y if isinstance(y, float) else 0.0) for y in metric_scores_y])
+        metric_scores_x = torch.as_tensor([(x if is_defined_float(x) else 0.0) for x in metric_scores_x])
+        metric_scores_y = torch.as_tensor([(y if is_defined_float(y) else 0.0) for y in metric_scores_y])
         ax.scatter(
             metric_scores_x,
             metric_scores_y,
