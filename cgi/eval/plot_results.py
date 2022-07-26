@@ -144,16 +144,19 @@ def plot_correlations_between_scores(
     all_metric_scores_x = torch.as_tensor([], dtype=torch.float)
     all_metric_scores_y = torch.as_tensor([], dtype=torch.float)
     for game_config, metric_scores in game_config_to_metric_scores.items():
-        metric_scores_x = metric_scores[metric_x.value][target_lang.value]
-        metric_scores_y = metric_scores[metric_y.value][target_lang.value]
-        assert isinstance(metric_scores_x, list)
-        assert isinstance(metric_scores_y, list)
-        metric_scores_x = torch.as_tensor([(x if is_defined_float(x) else 0.0) for x in metric_scores_x])
-        metric_scores_y = torch.as_tensor([(y if is_defined_float(y) else 0.0) for y in metric_scores_y])
+        metric_scores_x_ = metric_scores[metric_x.value][target_lang.value]
+        metric_scores_y_ = metric_scores[metric_y.value][target_lang.value]
+        assert isinstance(metric_scores_x_, list)
+        assert isinstance(metric_scores_y_, list)
+        metric_scores_x = torch.as_tensor([(x if is_defined_float(x) else 0.0) for x in metric_scores_x_])
+        metric_scores_y = torch.as_tensor([(y if is_defined_float(y) else 0.0) for y in metric_scores_y_])
         ax.scatter(
             metric_scores_x,
             metric_scores_y,
             label=repr(game_config),
+            marker={8: "o", 16: "D", 32: "*"}[game_config.vocab_size],   # type: ignore
+            color={4: "green", 8: "red"}[game_config.max_len],           # type: ignore
+            edgecolors={2: None, 3: "black"}[game_config.n_predicates],  # type: ignore
         )
         all_metric_scores_x = torch.cat([all_metric_scores_x, metric_scores_x])
         all_metric_scores_y = torch.cat([all_metric_scores_y, metric_scores_y])
