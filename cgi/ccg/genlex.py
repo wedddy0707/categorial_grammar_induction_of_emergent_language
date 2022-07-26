@@ -58,7 +58,7 @@ def newlex(parse: Derivation):
         if e.is_preleaf():
             items.add(e.item)
     # Split Lexical Items
-    items = items.union(*(split(e, recursive=False, enable_filler=False) for e in parse.lexitems))
+    items = items.union(*(split(e, recursive=False, enable_filler=False) for e in set(parse.lexitems)))
     return items
 
 
@@ -139,18 +139,18 @@ def extract_fun_arg_pairs(
         x = Var(f"x{max_arity - 1}")
         if len(argl.fv()) == 0:
             pairs.add((Lambda(x, sem_class(x, argr)), argl))
-            pairs |= {
-                (Lambda(x, sem_class(f(x), argr)), a)
-                for f, a in
-                extract_fun_arg_pairs(argl, max_arity=max_arity, enable_filler=enable_filler)
-            }
+        pairs |= {
+            (Lambda(x, sem_class(f(x), argr)), a)
+            for f, a in
+            extract_fun_arg_pairs(argl, max_arity=max_arity, enable_filler=enable_filler)
+        }
         if len(argr.fv()) == 0:
             pairs.add((Lambda(x, sem_class(argl, x)), argr))
-            pairs |= {
-                (Lambda(x, sem_class(argl, f(x))), a)
-                for f, a in
-                extract_fun_arg_pairs(argr, max_arity=max_arity, enable_filler=enable_filler)
-            }
+        pairs |= {
+            (Lambda(x, sem_class(argl, f(x))), a)
+            for f, a in
+            extract_fun_arg_pairs(argr, max_arity=max_arity, enable_filler=enable_filler)
+        }
         return pairs
     elif isinstance(sem, Lambda):
         x, body = sem.arg, sem.body
