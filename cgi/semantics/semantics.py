@@ -28,8 +28,14 @@ class Sem:
     def fv(self) -> Set["Var"]:
         return set()
 
-    def constant(self) -> Tuple["Const", ...]:
+    def constant_nodes(self) -> Tuple[Union["Const", Type["BinaryPredicate"]], ...]:
         return ()
+
+    def subtrees(self) -> Tuple["Sem", ...]:
+        return (self,)
+
+    def polish(self) -> Tuple[Union["Sem", Type["Sem"]], ...]:
+        raise NotImplementedError
 
     def subsumes(self, arg: "Sem") -> bool:
         raise NotImplementedError
@@ -50,7 +56,10 @@ class Const(Sem, enum.Enum):
     def __repr__(self):
         return f"{self.__class__.__name__}.{self.name}"
 
-    def constant(self) -> Tuple["Const", ...]:
+    def constant_nodes(self):
+        return (self,)
+
+    def polish(self):
         return (self,)
 
     def subsumes(self, arg: Sem) -> bool:
@@ -69,6 +78,9 @@ class Var(str, Sem):
 
     def subsumes(self, arg: Sem) -> bool:
         return True
+
+    def polish(self):
+        return (self,)
 
     def get_map_from_var_to_subsumed_sem(self, arg: Sem) -> Dict["Var", Sem]:
         return {self: arg}
@@ -107,11 +119,17 @@ class Lambda(Sem):
     def n_nodes(self):
         return self.body.n_nodes()
 
+    def subtrees(self) -> Tuple["Sem", ...]:
+        return (self,) + self.body.subtrees()
+
     def fv(self) -> Set[Var]:
         return self.body.fv() - {self.arg}
 
-    def constant(self) -> Tuple[Const, ...]:
-        return self.body.constant()
+    def constant_nodes(self):
+        return self.body.constant_nodes()
+
+    def polish(self):
+        return (self.__class__, self.arg) + self.body.polish()
 
     def subsumes(self, arg: "Sem") -> bool:
         return isinstance(arg, Lambda) and self.body.subsumes(arg.body)
@@ -153,8 +171,14 @@ class BinaryPredicate(Sem):
         empty: Set[Var] = set()
         return empty.union(*(x.fv() for x in self))
 
-    def constant(self) -> Tuple[Const, ...]:
-        return self.fst.constant() + self.snd.constant()
+    def constant_nodes(self):
+        return (self.__class__,) + self.fst.constant_nodes() + self.snd.constant_nodes()
+
+    def subtrees(self) -> Tuple["Sem", ...]:
+        return (self,) + self.fst.subtrees() + self.snd.subtrees()
+
+    def polish(self):
+        return (self.__class__,) + self.fst.polish() + self.snd.polish()
 
     def subsumes(self, arg: Sem) -> bool:
         return \
