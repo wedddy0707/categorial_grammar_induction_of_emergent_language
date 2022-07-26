@@ -228,15 +228,17 @@ def main(params: List[str]):
     figure_save_dir = pathlib.Path(args.figure_save_dir)
     figure_save_dir.mkdir(parents=True, exist_ok=True)
 
-    for metric_x, metric_y in itertools.combinations(
-        [Metric.cgf, Metric.cgl, Metric.cgt, Metric.topsim, Metric.tre], r=2,
-    ):
-        plot_correlations_between_scores(
-            args.game_config_to_metric_scores,
-            metric_x,
-            metric_y,
-            save_dir=figure_save_dir,
-        )
+    for target_lang in [TargetLanguage.emergent, TargetLanguage.input]:
+        for metric_x, metric_y in itertools.combinations(
+            [Metric.cgf, Metric.cgl, Metric.cgt, Metric.topsim, Metric.tre], r=2,
+        ):
+            plot_correlations_between_scores(
+                args.game_config_to_metric_scores,
+                metric_x,
+                metric_y,
+                target_lang=target_lang,
+                save_dir=figure_save_dir,
+            )
     n_predicates_to_metric_to_scores = aggregate_metric_scores_when_target_lang_is_input(
         args.game_config_to_metric_scores
     )
