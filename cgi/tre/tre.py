@@ -70,7 +70,7 @@ def metrics_of_tre(
 
         for _ in range(n_trains):
             composer = Composer(max_sem_symbol_id + 1, max_msg_symbol_id + 1, total_len)
-            objective = Objective(composer)
+            objective = Objective(composer, error_fn="cross_entropy")
             optimizer = optim.RMSprop(objective.parameters(), lr=lr)
             objective.train()
 
