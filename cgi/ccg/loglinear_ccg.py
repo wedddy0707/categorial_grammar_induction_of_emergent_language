@@ -8,6 +8,7 @@ import numpy.typing as npt
 
 from .cell import Derivation
 from .lexitem import Cat, BasicCat, FunctCat, LexItem, Sem, TransductionRule, Var
+from .init_param_factory import InitParamFactory
 
 
 class NoDerivationObtained(Exception):
@@ -47,7 +48,7 @@ class defaultdict_for_param(Dict[LexItem, float]):
 class LogLinearCCG:
     lr: float
     c: float
-    init_param: float
+    init_param_factory: InitParamFactory
     step: int
     max_word_len: int
     params: defaultdict_for_param
@@ -56,14 +57,12 @@ class LogLinearCCG:
     __pho_to_lexicon: "defaultdict[Tuple[Hashable, ...], Set[Derivation]]"
     __unigram: "defaultdict[Hashable, float]"
     __lexitem_to_transduction_rule: Dict[LexItem, TransductionRule]
-    derivations: List[Derivation]
-    parseable_sentences: List[Sentence]
 
     def __init__(
         self,
         lr: float,
         c: float,
-        init_param_factory: Callable[[LexItem], float],
+        init_param_factory: InitParamFactory,
     ):
         ##################
         # Initialization #
@@ -71,6 +70,7 @@ class LogLinearCCG:
         self.lr = lr
         self.c = c
         self.params = defaultdict_for_param(init_param_factory)
+        self.init_param_factory = init_param_factory
         self.__lexicon = set()
         self.__pho_to_lexicon = defaultdict(set)
         self.__unigram = defaultdict(float)
@@ -109,7 +109,6 @@ class LogLinearCCG:
         return float(np.prod([self.unigram[e] for e in x]))
 
     def zero_grad(self):
-        self.derivations = []
         self.grad = defaultdict(float)
 
     def prob_of_target_logical_form(
