@@ -33,3 +33,4 @@ class Metric(enum.Enum):
     cgt = "CGT"
     cgs = "CGS"
     cgi = "CGI-general-info"
+    ibm_model_1 = "IBM-Model1"
