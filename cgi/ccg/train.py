@@ -14,6 +14,7 @@ from ..io import make_logger
 from .genlex import newlex
 from .lexitem import BasicCat, LexItem, Sem
 from .loglinear_ccg import LogLinearCCG
+from .init_param_factory import InitParamFactory
 
 logger = make_logger(__name__)
 
@@ -40,68 +41,6 @@ class SurfaceRealizationReturnInfo(NamedTuple):
     realized_sentences: Tuple[Sentence, ...]
     edit_distances: Tuple[int, ...]
     logging_infos: Tuple[str, ...]
-
-
-class InitParamFactory:
-    def __init__(
-        self,
-        dataset: Dataset,
-        scale: float,
-        default: float,
-    ):
-        self.scale = scale
-        self.default = default
-
-        self.ngram_to_log_frequency = {
-            k: float(np.log2(v))
-            for k, v in Counter(
-                msg[i:i + n]
-                for msg, _, _ in dataset
-                for n in range(1, len(msg) + 1)
-                for i in range(0, len(msg) - n + 1)
-            ).items()
-        }
-        self.const_to_log_frequency = {
-            k: float(np.log2(v))
-            for k, v in Counter(
-                const
-                for _, lgc, _ in dataset
-                for const in lgc.constant()
-            ).items()
-        }
-        self.ngram_const_pair_to_log_cooccurring_frequency = {
-            k: float(np.log2(v))
-            for k, v in Counter(
-                (msg[i:i + n], const)
-                for msg, lgc, _ in dataset
-                for const in lgc.constant()
-                for n in range(1, len(msg) + 1)
-                for i in range(0, len(msg) - n + 1)
-            ).items()
-        }
-        self.ngram_len_to_log_total_frequency = {
-            k: float(np.log2(v))
-            for k, v in Counter(
-                n for msg, _, _ in dataset
-                for n in range(1, len(msg) + 1)
-            ).items()
-        }
-
-    def __call__(self, key: LexItem) -> float:
-        if not key.sem.constant():
-            return self.default
-        ngram = key.pho
-        log_total_freq = self.ngram_len_to_log_total_frequency[len(ngram)]
-        log_ngram_freq = self.ngram_to_log_frequency[ngram]
-        pmis: List[float] = [
-            sum([
-                + self.ngram_const_pair_to_log_cooccurring_frequency[ngram, const],
-                - self.const_to_log_frequency[const],
-                - log_ngram_freq,
-                + log_total_freq,
-            ]) for const in key.sem.constant()
-        ]
-        return float(np.average(pmis)) * self.scale
 
 
 def compute_f1_score(p: Optional[float], r: float):
@@ -137,7 +76,7 @@ def train(
     parser = LogLinearCCG(
         lr=lr,
         c=c,
-        init_param_factory=InitParamFactory(trn_dataset, scale=1, default=1),
+        init_param_factory=InitParamFactory(trn_dataset, scale=10, default=0),
     )
     ######################
     # initialize lexicon #
@@ -157,7 +96,7 @@ def train(
     for epoch in range(1, n_epochs + 1):
         logger.info(
             f"Lexicon size is {len(parser.lexicon)} "
-            f"at the begging of epoch {epoch}"
+            f"at the beginning of epoch {epoch}"
         )
         ########################
         # Parameter Estimation #
