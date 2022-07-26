@@ -6,7 +6,8 @@ import pandas as pd
 from ..io import make_logger
 from ..corpus import basic_preprocess_of_corpus_df, TargetLanguage, CorpusKey, Metric
 from ..topsim.topsim import compute_topsim
-from .train import Dataset, test, train, surface_realization
+from .train import Dataset, test, train
+# from .train import surface_realization
 
 logger = make_logger(__name__)
 
@@ -18,7 +19,7 @@ def metrics_of_induced_categorial_grammar(
     n_epochs: int = 20,
     n_trains: int = 1,
     lr: float = 0.1,
-    c: float = 0.1,
+    c: float = 1e-5,
     beam_size: Optional[int] = 10,
     vocab_size: int = 1,
     show_train_progress: bool = False,
@@ -30,6 +31,7 @@ def metrics_of_induced_categorial_grammar(
         Metric.cgl.value: {},
         Metric.cgt.value: {},
         Metric.cgs.value: {},
+        Metric.ibm_model_1.value: {},
     }
 
     for target_lang in sorted(target_langs, key=(lambda x: x.value)):
@@ -76,6 +78,7 @@ def metrics_of_induced_categorial_grammar(
         metric[Metric.cgl.value][key] = []
         metric[Metric.cgt.value][key] = []
         metric[Metric.cgs.value][key] = []
+        metric[Metric.ibm_model_1.value][key] = []
 
         for _ in range(n_trains):
             #########
@@ -141,6 +144,13 @@ def metrics_of_induced_categorial_grammar(
             # metric[Metric.cgs.value][key].append(
             #     sum(tst_realization.edit_distances) / len(tst_realization.edit_distances)
             # )
+            translation_scores = [
+                parser.init_param_factory.model.score(msg, lgc.constant_nodes())
+                for msg, lgc, _ in trn_dataset
+            ]
+            metric[Metric.ibm_model_1.value][key].append(
+                sum(translation_scores) / len(translation_scores)
+            )
         end_time = time.time()
         logger.info(f"Processing time: {end_time - start_time}s")
     return metric
