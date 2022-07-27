@@ -131,6 +131,61 @@ def aggregate_metric_scores_when_target_lang_is_input(
     return n_predicates_to_metric_to_scores
 
 
+def extract_generalization_loss(
+    game_config_to_metric_scores: Dict[GameConfig, NestedDict],
+):
+    game_config_to_generalization_losses: Dict[GameConfig, list[Hashable]] = {}
+    for game_config, metric_scores in game_config_to_metric_scores.items():
+        emecom_performance = metric_scores[Metric.emecom.value]
+        assert isinstance(emecom_performance, dict), emecom_performance
+        test_loss = emecom_performance["test_loss"]
+        assert isinstance(test_loss, list)
+        game_config_to_generalization_losses[game_config] = test_loss
+    return game_config_to_generalization_losses
+
+
+def plot_correlations_between_generalization_loss_and_score(
+    game_config_to_metric_scores: Dict[GameConfig, NestedDict],
+    metric: Metric,
+    target_lang: TargetLanguage = TargetLanguage.emergent,
+    figname: Optional[str] = None,
+    save_dir: pathlib.Path = pathlib.Path("./"),
+):
+    game_config_to_generalization_loss = extract_generalization_loss(game_config_to_metric_scores)
+    fig = plt.figure(tight_layout=True)
+    ax: plt.Axes = fig.add_subplot(111)
+    all_metric_scores = torch.as_tensor([], dtype=torch.float)
+    all_generalization_losses = torch.as_tensor([], dtype=torch.float)
+    for game_config, metric_scores in game_config_to_metric_scores.items():
+        generalization_losses_ = game_config_to_generalization_loss[game_config]
+        metric_scores_ = metric_scores[metric.value][target_lang.value]
+        assert isinstance(metric_scores_, list)
+        metric_scores = torch.as_tensor([(x if is_defined_float(x) else 0.0) for x in metric_scores_])
+        generalization_losses = torch.as_tensor([(x if is_defined_float(x) else 0.0) for x in generalization_losses_])
+        ax.scatter(
+            metric_scores,
+            generalization_losses,
+            label=repr(game_config),
+            marker={8: "o", 16: "D", 32: "*"}[game_config.vocab_size],   # type: ignore
+            color={4: "green", 8: "red"}[game_config.max_len],           # type: ignore
+            edgecolors={2: None, 3: "black"}[game_config.n_predicates],  # type: ignore
+        )
+        all_metric_scores = torch.cat([all_metric_scores, metric_scores])
+        all_generalization_losses = torch.cat([all_generalization_losses, generalization_losses])
+    pearson_corr = pearsonr(all_metric_scores, all_generalization_losses)
+    ax.legend()
+    ax.set_xlabel(metric.value)
+    ax.set_ylabel("Generalization Loss")
+    ax.set_title(f"Pearson $r={pearson_corr[0]:.5f}$ ($p={pearson_corr[1]:.5f}$)")
+    if figname is None:
+        figname = "correlation_x{}_y{}_lang{}.png".format(
+            metric.value,
+            "EmeCom",
+            target_lang.value,
+        )
+    fig.savefig((save_dir / figname).as_posix(), bbox_inches="tight")
+
+
 def plot_correlations_between_scores(
     game_config_to_metric_scores: Dict[GameConfig, NestedDict],
     metric_x: Metric,
@@ -232,6 +287,13 @@ def main(params: List[str]):
     figure_save_dir.mkdir(parents=True, exist_ok=True)
 
     for target_lang in [TargetLanguage.emergent, TargetLanguage.input]:
+        for metric in [Metric.cgf, Metric.cgl, Metric.cgt, Metric.topsim, Metric.tre]:
+            plot_correlations_between_generalization_loss_and_score(
+                args.game_config_to_metric_scores,
+                metric,
+                target_lang=target_lang,
+                save_dir=figure_save_dir,
+            )
         for metric_x, metric_y in itertools.combinations(
             [Metric.cgf, Metric.cgl, Metric.cgt, Metric.topsim, Metric.tre], r=2,
         ):
