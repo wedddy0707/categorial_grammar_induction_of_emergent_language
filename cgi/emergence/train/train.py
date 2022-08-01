@@ -9,11 +9,12 @@ import egg.core as core
 from ...semantics.semantics import SemanticsDataset, SEMANTIC_VOCAB_SIZE
 from ...io import make_logger
 from ..arch import Encoder
-from ..arch import Decoder
+# from ..arch import Decoder
 from ..arch import Decoder_REINFORCE
 from ..arch import Agent
 from ..game import SingleGame
-from ..game.loss import LossRR, LossRS
+from ..game.loss import LossRR
+# from ..game.loss import LossRS
 from .common_params import get_common_params
 from .dump import dump_params
 from .intervene import DumpCorpus, Metrics, Evaluator, PeriodicAgentResetter
@@ -127,7 +128,7 @@ def main(argv: List[str]):
     )
 
     logger.info("Defining Optimizer...")
-    optimizer = core.build_optimizer(game.parameters())
+    optimizer = core.build_optimizer(game.parameters())  # type: ignore
 
     logger.info("Defining Callbacks...")
     split_to_dataset: Dict[Literal["train", "valid", "test"], SemanticsDataset] = {
@@ -162,7 +163,7 @@ def main(argv: List[str]):
 
     logger.info("Start Training!")
     try:
-        trainer.train(n_epochs=opts.n_epochs)
+        trainer.train(n_epochs=opts.n_epochs)  # type: ignore
     except KeyboardInterrupt:
         logger.warning("KeyboardInterrupt caught!")
 

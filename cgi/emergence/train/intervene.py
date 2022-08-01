@@ -161,6 +161,10 @@ class PeriodicAgentResetter(core.Callback):
         recver_life_span: Optional[int],
     ) -> None:
         super().__init__()
+        if isinstance(sender_life_span, int) and sender_life_span == 0:
+            sender_life_span = None
+        if isinstance(recver_life_span, int) and recver_life_span == 0:
+            recver_life_span = None
         self.sender_life_span = sender_life_span
         self.recver_life_span = recver_life_span
 
@@ -170,15 +174,12 @@ class PeriodicAgentResetter(core.Callback):
         self.sender = self.trainer.game.sender
         self.recver = self.trainer.game.recver
 
-    def on_epoch_begin(self, *stuff) -> None:
-        # Assume that epoch begins with 1, not 0.
+    def on_epoch_begin(self, *_) -> None:
+        self.epoch += 1
         if self.sender_life_span is not None and (self.epoch - 1) % self.sender_life_span == 0:
             self.__reset_module_parameters(self.sender)
         if self.recver_life_span is not None and (self.epoch - 1) % self.recver_life_span == 0:
             self.__reset_module_parameters(self.recver)
-
-    def on_epoch_end(self, *stuff: Any):
-        self.epoch += 1
 
     def __reset_module_parameters(self, m: nn.Module):
         reset_parameters = getattr(m, "reset_parameters", None)
