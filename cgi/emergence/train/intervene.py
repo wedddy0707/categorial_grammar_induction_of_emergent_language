@@ -9,6 +9,7 @@ from scipy.stats import spearmanr
 
 import egg.core as core
 
+from ..game.game import SingleGame
 from ...semantics.semantics import SemanticsDataset
 from ..msg import get_mask
 
@@ -171,15 +172,22 @@ class PeriodicAgentResetter(core.Callback):
     def on_train_begin(self, trainer_instance: Any) -> None:
         self.trainer = trainer_instance
         self.epoch = self.trainer.start_epoch
-        self.sender = self.trainer.game.sender
-        self.recver = self.trainer.game.recver
+
+        self.game: SingleGame = self.trainer.game
+        assert isinstance(self.game, SingleGame)
+
+        self.sender = self.game.sender
+        self.recver = self.game.recver
+        self.baseline = self.game.baseline
 
     def on_epoch_begin(self, *_) -> None:
         self.epoch += 1
         if self.sender_life_span is not None and (self.epoch - 1) % self.sender_life_span == 0:
             self.__reset_module_parameters(self.sender)
+            self.__reset_baseline()
         if self.recver_life_span is not None and (self.epoch - 1) % self.recver_life_span == 0:
             self.__reset_module_parameters(self.recver)
+            self.__reset_baseline()
 
     def __reset_module_parameters(self, m: nn.Module):
         reset_parameters = getattr(m, "reset_parameters", None)
@@ -187,3 +195,7 @@ class PeriodicAgentResetter(core.Callback):
             reset_parameters()
         for child in m.children():
             self.__reset_module_parameters(child)
+
+    def __reset_baseline(self):
+        for k in self.baseline.keys():
+            self.baseline[k] = self.baseline[k].__class__()
