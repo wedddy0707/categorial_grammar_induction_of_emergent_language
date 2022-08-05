@@ -303,7 +303,8 @@ def plot_comparisons_among_target_langs(
             lang_to_scores[target_lang].append([float(e) if is_defined_float(e) else 0.0 for e in scores])
 
     bar_width = 0.2
-    x_data = np.arange(len(game_config_to_metric_scores))
+    n_target_langs = len(target_langs)
+    x_data = np.arange(len(game_config_to_metric_scores)) * bar_width * n_target_langs * 1.5
 
     for i, (k, v) in enumerate(lang_to_scores.items()):
         mean = np.array([np.mean(x) for x in v], dtype=np.float_)
@@ -319,7 +320,7 @@ def plot_comparisons_among_target_langs(
     ax.legend()
     ax.set_xlabel("Game Config")
     ax.set_ylabel(metric.value)
-    ax.set_xticks(x_data + (bar_width * len(game_config_to_metric_scores) / 2))
+    ax.set_xticks(x_data + (bar_width * n_target_langs / 2))
     ax.set_xticklabels([repr(x) for x in game_config_to_metric_scores.keys()], rotation=45)
     if figname is None:
         figname = "comparison_langs_metric{}.png".format(metric.value)
