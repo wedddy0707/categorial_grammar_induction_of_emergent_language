@@ -303,7 +303,7 @@ def plot_comparisons_among_target_langs(
             lang_to_scores[target_lang].append([float(e) if is_defined_float(e) else 0.0 for e in scores])
 
     bar_width = 0.2
-    x_data = np.arange(len(lang_to_scores))
+    x_data = np.arange(len(game_config_to_metric_scores))
 
     for i, (k, v) in enumerate(lang_to_scores.items()):
         mean = np.array([np.mean(x) for x in v], dtype=np.float_)
