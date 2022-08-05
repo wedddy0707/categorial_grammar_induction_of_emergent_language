@@ -311,22 +311,16 @@ def plot_comparisons_among_target_langs(
         ax.bar(
             x_data + i * bar_width,
             mean,
+            yerr=standard_error,
             label=k.value,
             width=bar_width,
-        )
-        ax.fill_between(
-            x_data + i * bar_width,
-            mean + standard_error,
-            mean - standard_error,
-            color=ax.get_lines()[-1].get_color(),
-            alpha=0.1,
         )
 
     ax.legend()
     ax.set_xlabel("Game Config")
     ax.set_ylabel(metric.value)
     ax.set_xticks(x_data + (bar_width * len(game_config_to_metric_scores) / 2))
-    ax.set_xticklabels([repr(x) for x in game_config_to_metric_scores.keys()])
+    ax.set_xticklabels([repr(x) for x in game_config_to_metric_scores.keys()], rotation=45)
     if figname is None:
         figname = "comparison_langs_metric{}.png".format(metric.value)
     fig.savefig((save_dir / figname).as_posix(), bbox_inches="tight")
