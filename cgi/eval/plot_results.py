@@ -308,10 +308,11 @@ def plot_comparisons_among_target_langs(
     for i, (k, v) in enumerate(lang_to_scores.items()):
         mean = np.array([np.mean(x) for x in v], dtype=np.float_)
         standard_error = np.array([np.std(x, ddof=1) / np.sqrt(len(x)) for x in v], dtype=np.float_)
-        ax.plot(
+        ax.bar(
             x_data + i * bar_width,
             mean,
             label=k.value,
+            width=bar_width,
         )
         ax.fill_between(
             x_data + i * bar_width,
