@@ -28,8 +28,8 @@ NestedDict = Dict[str, Union[Hashable, List[Hashable], "NestedDict"]]
 
 
 class NameSpaceForPlot:
-    file_of_exp_dirs: str
-    figure_save_dir: str
+    file_of_exp_dirs: Union[str, pathlib.Path]
+    figure_save_dir: Union[str, pathlib.Path]
     exp_dirs: List[pathlib.Path]
     game_config_to_metric_scores: Dict[GameConfig, NestedDict]
 
@@ -73,6 +73,7 @@ def get_params(params: List[str]):
     with file_of_exp_dirs.open(mode="r") as f:
         args.exp_dirs = [file_of_exp_dirs.parent.parent / line.strip() for line in f.readlines()]
         print(args.exp_dirs)
+    args.figure_save_dir = pathlib.Path(args.figure_save_dir) / file_of_exp_dirs.stem
 
     args.game_config_to_metric_scores = {}
     game_config_to_random_seeds: Dict[GameConfig, List[int]] = {}
@@ -229,7 +230,7 @@ def plot_correlations_between_scores(
     fig.savefig((save_dir / figname).as_posix(), bbox_inches="tight")
 
 
-def plot_comparisons_among_target_langs(
+def plot_comparisons_among_target_langs_old_version(
     game_config_to_metric_scores: Dict[GameConfig, NestedDict],
     n_predicates_to_metric_to_scores_for_input_lang: "defaultdict[int, defaultdict[str, List[Hashable]]]",
     metric: Metric,
@@ -277,6 +278,56 @@ def plot_comparisons_among_target_langs(
         figname = "comparison_langs_metric{}.png".format(
             metric.value,
         )
+    fig.savefig((save_dir / figname).as_posix(), bbox_inches="tight")
+
+
+def plot_comparisons_among_target_langs(
+    game_config_to_metric_scores: Dict[GameConfig, NestedDict],
+    n_predicates_to_metric_to_scores_for_input_lang: "defaultdict[int, defaultdict[str, List[Hashable]]]",
+    metric: Metric,
+    target_langs: Sequence[TargetLanguage],
+    figname: Optional[str] = None,
+    save_dir: pathlib.Path = pathlib.Path("./"),
+):
+    fig = plt.figure(tight_layout=True)
+    ax: plt.Axes = fig.add_subplot(111)
+
+    lang_to_scores: "defaultdict[TargetLanguage, List[List[float]]]" = defaultdict(list)
+    for target_lang in target_langs:
+        for game_config, metric_scores in game_config_to_metric_scores.items():
+            if target_lang == TargetLanguage.input:
+                scores = n_predicates_to_metric_to_scores_for_input_lang[game_config.n_predicates][metric.value]
+            else:
+                scores: List[Hashable] = metric_scores[metric.value][target_lang.value]
+            assert isinstance(scores, list)
+            lang_to_scores[target_lang].append([float(e) if is_defined_float(e) else 0.0 for e in scores])
+
+    bar_width = 0.2
+    x_data = np.arange(len(lang_to_scores))
+
+    for i, (k, v) in enumerate(lang_to_scores.items()):
+        mean = np.array([np.mean(x) for x in v], dtype=np.float_)
+        standard_error = np.array([np.std(x, ddof=1) / np.sqrt(len(x)) for x in v], dtype=np.float_)
+        ax.plot(
+            x_data + i * bar_width,
+            mean,
+            label=k.value,
+        )
+        ax.fill_between(
+            x_data + i * bar_width,
+            mean + standard_error,
+            mean - standard_error,
+            color=ax.get_lines()[-1].get_color(),
+            alpha=0.1,
+        )
+
+    ax.legend()
+    ax.set_xlabel("Game Config")
+    ax.set_ylabel(metric.value)
+    ax.set_xticks(x_data + (bar_width * len(game_config_to_metric_scores) / 2))
+    ax.set_xticklabels([repr(x) for x in game_config_to_metric_scores.keys()])
+    if figname is None:
+        figname = "comparison_langs_metric{}.png".format(metric.value)
     fig.savefig((save_dir / figname).as_posix(), bbox_inches="tight")
 
 
