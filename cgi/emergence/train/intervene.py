@@ -23,6 +23,28 @@ _OUTPUT = "output"
 _SPLIT = "split"
 
 
+class EarlyStopperByLoss(core.early_stopping.BaseEarlyStopper):
+    def __init__(
+        self,
+        threshold: float,
+        field_name: str = "original_loss",
+        validation: bool = True,
+    ):
+        super().__init__(validation)
+        self.threshold = threshold
+        self.field_name = field_name
+
+    def should_stop(self) -> bool:
+        if self.validation:
+            assert self.validation_stats, "Validation data must be provided for early stooping to work"
+            stats = self.validation_stats
+        else:
+            assert self.train_stats, "Training data must be provided for early stooping to work"
+            stats = self.train_stats
+
+        return stats[-1][1][self.field_name] <= self.threshold
+
+
 class AskSender(core.Callback):
     split_to_dataset: Dict[Literal["train", "valid", "test"], SemanticsDataset]
     device: torch.device

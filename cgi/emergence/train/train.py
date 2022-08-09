@@ -17,7 +17,7 @@ from ..game.loss import LossRR
 # from ..game.loss import LossRS
 from .common_params import get_common_params
 from .dump import dump_params
-from .intervene import DumpCorpus, Metrics, Evaluator, PeriodicAgentResetter
+from .intervene import DumpCorpus, Metrics, Evaluator, PeriodicAgentResetter, EarlyStopperByLoss
 
 
 def get_params(
@@ -140,7 +140,7 @@ def main(argv: List[str]):
         DumpCorpus(split_to_dataset, opts.device, freq=opts.language_dump_freq),
         Evaluator(split_to_dataset, device=opts.device, freq=opts.stats_dump_freq),
         core.ConsoleLogger(as_json=True, print_train_loss=True),
-        core.EarlyStopperAccuracy(opts.early_stopping_thr),
+        EarlyStopperByLoss(opts.early_stopping_thr),
         PeriodicAgentResetter(opts.sender_life_span, opts.receiver_life_span),
     ]
 
