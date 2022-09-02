@@ -214,7 +214,7 @@ class BinaryPredicate(Sem):
         return None
 
     def to_latex(self) -> str:
-        return "\texttt{{{}}}({}, {})".format(
+        return "\\texttt{{{}}}({}, {})".format(
             self.__class__.__name__,
             self.fst.to_latex(),
             self.snd.to_latex(),
