@@ -170,7 +170,10 @@ def metrics_of_induced_categorial_grammar(
             )
             count_fa = count_of_applied_rules[CategorialGrammarRule.forward_application_rule]
             count_ba = count_of_applied_rules[CategorialGrammarRule.backward_application_rule]
-            fb_ratio = (count_fa - count_ba) / (count_fa + count_ba)
+            try:
+                fb_ratio = (count_fa - count_ba) / (count_fa + count_ba)
+            except ZeroDivisionError:
+                fb_ratio = 0
             metric[Metric.fb_ratio.value][key].append(fb_ratio)
 
         end_time = time.time()
