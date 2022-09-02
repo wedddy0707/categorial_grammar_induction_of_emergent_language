@@ -49,7 +49,7 @@ def get_params(
                             "emergent",
                             "shuffled",
                             "random",
-                            "adjacent_swapped",
+                            # "adjacent_swapped",
                         ],
                         choices=(
                             "input",
