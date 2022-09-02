@@ -34,3 +34,4 @@ class Metric(enum.Enum):
     cgs = "CGS"
     cgi = "CGI-general-info"
     ibm_model_1 = "IBM-Model1"
+    fb_ratio = "F/B-ratio"
