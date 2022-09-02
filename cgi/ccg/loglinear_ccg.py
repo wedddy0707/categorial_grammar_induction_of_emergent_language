@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 
 from .cell import Derivation
-from .lexitem import Cat, BasicCat, FunctCat, LexItem, Sem, TransductionRule, Var
+from .lexitem import Cat, BasicCat, FunctCat, LexItem, Sem, TransductionRule, Var, CategorialGrammarRule
 from .init_param_factory import InitParamFactory
 
 
@@ -63,6 +63,8 @@ class LogLinearCCG:
         lr: float,
         c: float,
         init_param_factory: InitParamFactory,
+        enable_forward_application_rule: bool = True,
+        enable_backward_application_rule: bool = True,
     ):
         ##################
         # Initialization #
@@ -71,6 +73,10 @@ class LogLinearCCG:
         self.c = c
         self.params = defaultdict_for_param(init_param_factory)
         self.init_param_factory = init_param_factory
+
+        self.enable_fa = enable_forward_application_rule
+        self.enable_ba = enable_backward_application_rule
+
         self.__lexicon = set()
         self.__pho_to_lexicon = defaultdict(set)
         self.__unigram = defaultdict(float)
@@ -201,20 +207,26 @@ class LogLinearCCG:
                                 item=deriv_l.item.takes_as_right_arg(deriv_r.item),
                                 score=(deriv_l.score + deriv_r.score),
                                 backptrs=(deriv_l, deriv_r),
+                                rule=CategorialGrammarRule.forward_application_rule,
                             )
                             for deriv_l in cats_l[cat_l]
                             for deriv_r in cats_r[cat_r]
-                        ) if isinstance(cat_l, FunctCat) and cat_l.slash == "/" and cat_l.dom == cat_r
-                        else cell[i, j].extend(
+                        )
+                        if isinstance(cat_l, FunctCat) and cat_l.slash == "/" and cat_l.dom == cat_r and self.enable_fa
+                        else
+                        cell[i, j].extend(
                             Derivation(
                                 item=deriv_r.item.takes_as_left_arg(deriv_l.item),
                                 score=(deriv_l.score + deriv_r.score),
                                 backptrs=(deriv_l, deriv_r),
+                                rule=CategorialGrammarRule.backward_application_rule,
                             )
                             for deriv_l in cats_l[cat_l]
                             for deriv_r in cats_r[cat_r]
-                        ) if isinstance(cat_r, FunctCat) and cat_r.slash == "\\" and cat_r.dom == cat_l
-                        else None
+                        )
+                        if isinstance(cat_r, FunctCat) and cat_r.slash == "\\" and cat_r.dom == cat_l and self.enable_ba
+                        else
+                        None
                         for cat_l in cats_l.keys()
                         for cat_r in cats_r.keys()
                     ]

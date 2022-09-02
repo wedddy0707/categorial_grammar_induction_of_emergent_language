@@ -15,6 +15,7 @@ from .genlex import newlex
 from .lexitem import BasicCat, LexItem, Sem
 from .loglinear_ccg import LogLinearCCG
 from .init_param_factory import InitParamFactory
+from .cell import Derivation
 
 logger = make_logger(__name__)
 
@@ -33,6 +34,7 @@ class TestReturnInfo(NamedTuple):
     precision: Optional[float]
     recall: float
     f1score: Optional[float]
+    top_score_parses: Tuple[Optional[Derivation], ...]
     visualized_top_score_parses: Tuple[str, ...]
     word_sequences: Tuple[Tuple[Tuple[Hashable, ...], ...], ...]
 
@@ -62,6 +64,8 @@ def train(
     beam_size: Optional[int],
     show_progress: bool = False,
     random_seed: int = 0,
+    enable_forward_application_rule: bool = True,
+    enable_backward_application_rule: bool = True,
 ):
     logging_level = logger.level
     if not show_progress:
@@ -77,6 +81,8 @@ def train(
         lr=lr,
         c=c,
         init_param_factory=InitParamFactory(trn_dataset, scale=10, default=0),
+        enable_forward_application_rule=enable_forward_application_rule,
+        enable_backward_application_rule=enable_backward_application_rule,
     )
     ######################
     # initialize lexicon #
@@ -185,6 +191,7 @@ def test(
     are_parsed: List[int] = []
     are_correct: List[int] = []
 
+    top_score_parses: List[Optional[Derivation]] = []
     visualized_top_score_parses: List[str] = []
     word_sequences: List[Tuple[Tuple[Hashable, ...], ...]] = []
 
@@ -204,6 +211,7 @@ def test(
 
         if len(parses) > 0:
             top_score_parse = max(parses, key=lambda x: x.score)
+            top_score_parses.append(top_score_parse)
             dump = "({}, {}) is parsed {}.\n{}".format(
                 msg,
                 lgc,
@@ -213,6 +221,7 @@ def test(
             visualized_top_score_parses.append(dump)
             word_sequences.append(top_score_parse.word_sequence())
         else:
+            top_score_parses.append(None)
             dump = "({}, {}) is not parsed.".format(msg, lgc)
             visualized_top_score_parses.append(dump)
             word_sequences.append((msg,))
@@ -226,6 +235,7 @@ def test(
         precision=precision,
         recall=recall,
         f1score=compute_f1_score(precision, recall),
+        top_score_parses=tuple(top_score_parses),
         visualized_top_score_parses=tuple(visualized_top_score_parses),
         word_sequences=tuple(word_sequences),
     )

@@ -43,6 +43,9 @@ class Sem:
     def get_map_from_var_to_subsumed_sem(self, arg: "Sem") -> Optional[Dict["Var", "Sem"]]:
         raise NotImplementedError
 
+    def to_latex(self) -> str:
+        raise NotImplementedError
+
 
 class Const(Sem, enum.Enum):
     CIRCLE = enum.auto()
@@ -68,6 +71,9 @@ class Const(Sem, enum.Enum):
     def get_map_from_var_to_subsumed_sem(self, arg: Sem) -> Optional[Dict["Var", Sem]]:
         return {} if self == arg else None
 
+    def to_latex(self) -> str:
+        return "\\texttt{{{}}}".format(self.name)
+
 
 class Var(str, Sem):
     def n_nodes(self) -> int:
@@ -84,6 +90,9 @@ class Var(str, Sem):
 
     def get_map_from_var_to_subsumed_sem(self, arg: Sem) -> Dict["Var", Sem]:
         return {self: arg}
+
+    def to_latex(self) -> str:
+        return str(self)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -141,6 +150,9 @@ class Lambda(Sem):
                 m.pop(self.arg, None)
             return m
         return None
+
+    def to_latex(self) -> str:
+        return "\\lambda {}.{}".format(self.arg.to_latex(), self.body.to_latex())
 
 
 @dataclasses.dataclass(frozen=True)
@@ -200,6 +212,13 @@ class BinaryPredicate(Sem):
             m_fst.update(m_snd)
             return m_fst
         return None
+
+    def to_latex(self) -> str:
+        return "\texttt{{{}}}({}, {})".format(
+            self.__class__.__name__,
+            self.fst.to_latex(),
+            self.snd.to_latex(),
+        )
 
 
 @dataclasses.dataclass(frozen=True)

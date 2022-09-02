@@ -1,8 +1,8 @@
 import dataclasses
 import math
-from typing import List, Sequence, Tuple, Hashable
+from typing import List, Sequence, Tuple, Hashable, Optional
 
-from .lexitem import LexItem
+from .lexitem import LexItem, CategorialGrammarRule
 
 
 @dataclasses.dataclass(frozen=True)
@@ -10,6 +10,7 @@ class Derivation:
     item: LexItem
     score: float = 0
     backptrs: Sequence["Derivation"] = ()
+    rule: Optional[CategorialGrammarRule] = None
 
     def __bool__(self):
         return True
@@ -49,6 +50,17 @@ class Derivation:
             if e.is_leaf():
                 items.append(e.item)
         return items
+
+    @property
+    def applied_rules(self):
+        rules: List[CategorialGrammarRule] = []
+        queue = [self]
+        while queue:
+            e = queue.pop(-1)
+            queue += list(e.backptrs)
+            if e.rule is not None:
+                rules.append(e.rule)
+        return rules
 
     def word_sequence(self):
         seq: List[Tuple[Hashable, ...]] = []

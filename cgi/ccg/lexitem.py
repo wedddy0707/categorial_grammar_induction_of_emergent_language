@@ -9,6 +9,9 @@ class Cat:
     def n_slashes(self, dir: Optional[Literal['/', '\\']] = None) -> int:
         return 0
 
+    def to_latex(self) -> str:
+        raise NotImplementedError
+
 
 class BasicCat(Cat, enum.Enum):
     N = enum.auto()
@@ -16,6 +19,9 @@ class BasicCat(Cat, enum.Enum):
 
     def __str__(self):
         return self.name
+
+    def to_latex(self):
+        return "\\texttt{{{}}}".format(self.name)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -43,6 +49,19 @@ class FunctCat(Cat):
         n += self.cod.n_slashes(dir=dir)
         n += self.dom.n_slashes(dir=dir)
         return n
+
+    def to_latex(self):
+        latex_slash = "\\backslash" if self.slash == "\\" else "/"
+        latex_cod = self.cod.to_latex()
+        latex_dom = self.dom.to_latex()
+        if isinstance(self.dom, FunctCat):
+            latex_dom = "({})".format(latex_dom)
+        return " ".join([latex_cod, latex_slash, latex_dom])
+
+
+class CategorialGrammarRule(enum.Enum):
+    forward_application_rule = enum.auto()
+    backward_application_rule = enum.auto()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -77,8 +96,21 @@ class LexItem:
     def __ge__(self, other: "LexItem"):
         return repr(self) >= repr(other)
 
-    def to_latex_equation(self) -> str:
-        return f"{self.pho} \\vdash {self.cat}: {self.sem}"
+    def to_latex(self, bracket_with_dallers: bool = True) -> str:
+        r"""
+        \newcommand{\lexitem}[3]{#1\!\vdash\!#2\!:\!#3}
+        """
+        latex_cat = self.cat.to_latex()
+        latex_sem = self.sem.to_latex()
+        latex_pho = "\\text{{{}}}".format(" ".join(str(x) for x in self.pho))
+        latex_lexitem = "\\lexitem{{{}}}{{{}}}{{{}}}".format(
+            latex_pho,
+            latex_cat,
+            latex_sem,
+        )
+        if bracket_with_dallers:
+            latex_lexitem = "${}$".format(latex_lexitem)
+        return latex_lexitem
 
     def can_take_as_right_arg(self, other: "LexItem"):
         return isinstance(self.cat, FunctCat) and self.cat.slash == "/" and self.cat.dom == other.cat

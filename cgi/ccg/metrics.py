@@ -1,12 +1,15 @@
 import time
 from typing import List, Set, Dict, Optional
+from collections import Counter
 
 import pandas as pd
+import itertools
 
 from ..io import make_logger
 from ..corpus import basic_preprocess_of_corpus_df, TargetLanguage, CorpusKey, Metric
 from ..topsim.topsim import compute_topsim
 from .train import Dataset, test, train
+from .lexitem import CategorialGrammarRule
 # from .train import surface_realization
 
 logger = make_logger(__name__)
@@ -32,6 +35,7 @@ def metrics_of_induced_categorial_grammar(
         Metric.cgt.value: {},
         Metric.cgs.value: {},
         Metric.ibm_model_1.value: {},
+        Metric.fb_ratio.value: {},
     }
 
     for target_lang in sorted(target_langs, key=(lambda x: x.value)):
@@ -79,6 +83,7 @@ def metrics_of_induced_categorial_grammar(
         metric[Metric.cgt.value][key] = []
         metric[Metric.cgs.value][key] = []
         metric[Metric.ibm_model_1.value][key] = []
+        metric[Metric.fb_ratio.value][key] = []
 
         for _ in range(n_trains):
             #########
@@ -121,7 +126,10 @@ def metrics_of_induced_categorial_grammar(
             if show_lexicon:
                 logger.info(
                     "Show Lexicon\n" + "\n".join([
-                        f"{str(item): <60} SCORE={parser.params[item]}"
+                        "{} & {}".format(
+                            item.to_latex(bracket_with_dallers=True),
+                            parser.params[item],
+                        )
                         for item in sorted(
                             parser.lexicon,
                             reverse=True,
@@ -144,6 +152,7 @@ def metrics_of_induced_categorial_grammar(
             # metric[Metric.cgs.value][key].append(
             #     sum(tst_realization.edit_distances) / len(tst_realization.edit_distances)
             # )
+
             translation_scores = [
                 parser.init_param_factory.model.score(msg, lgc.constant_nodes())
                 for msg, lgc, _ in trn_dataset
@@ -151,6 +160,19 @@ def metrics_of_induced_categorial_grammar(
             metric[Metric.ibm_model_1.value][key].append(
                 sum(translation_scores) / len(translation_scores)
             )
+
+            count_of_applied_rules = Counter(
+                itertools.chain.from_iterable(
+                    parse.applied_rules
+                    for parse in trn_eval.top_score_parses
+                    if parse is not None
+                )
+            )
+            count_fa = count_of_applied_rules[CategorialGrammarRule.forward_application_rule]
+            count_ba = count_of_applied_rules[CategorialGrammarRule.backward_application_rule]
+            fb_ratio = (count_fa - count_ba) / (count_fa + count_ba)
+            metric[Metric.fb_ratio.value][key].append(fb_ratio)
+
         end_time = time.time()
         logger.info(f"Processing time: {end_time - start_time}s")
     return metric
