@@ -188,6 +188,7 @@ def plot_correlations_between_generalization_loss_and_score(
             "&".join(str(m.value) for m in metrics),
             str(target_lang.value).capitalize(),
         )
+        figname = figname.replace("/", "")
     fig.savefig((save_dir / figname).as_posix(), bbox_inches="tight")
 
 
@@ -232,6 +233,7 @@ def plot_correlations_between_scores(
             "&".join("(" + str(pair[0].value) + "," + str(pair[1].value) + ")" for pair in metric_pairs),
             target_lang.value,
         )
+        figname = figname.replace("/", "")
     fig.savefig((save_dir / figname).as_posix(), bbox_inches="tight")
 
 
@@ -284,7 +286,8 @@ def plot_comparisons_among_target_langs(
         loc="upper center",
     )
     if figname is None:
-        figname = "comparison_langs_metrics{}.png".format("&".join([m.value for m in metrics]))
+        figname = "comparison_langs_metrics{}.png".format("&".join(str(m.value) for m in metrics))
+        figname = figname.replace("/", "")
     fig.savefig((save_dir / figname).as_posix(), bbox_inches="tight")
 
 
