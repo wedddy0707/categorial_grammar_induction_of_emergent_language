@@ -175,6 +175,7 @@ def plot_correlations_between_generalization_loss_and_score(
                 metric_scores,
                 generalization_losses,
                 label=repr(game_config),
+                color="blue",
                 # marker={8: "o", 16: "D", 32: "*"}[game_config.vocab_size],   # type: ignore
                 # color={4: "green", 8: "red"}[game_config.max_len],           # type: ignore
                 # edgecolors={2: None, 3: "black"}[game_config.n_predicates],  # type: ignore
@@ -223,6 +224,7 @@ def plot_correlations_between_scores(
                 metric_scores_x,
                 metric_scores_y,
                 label=repr(game_config),
+                color="blue",
                 # marker={8: "o", 16: "D", 32: "*"}[game_config.vocab_size],   # type: ignore
                 # color={4: "green", 8: "red"}[game_config.max_len],           # type: ignore
                 # edgecolors={2: None, 3: "black"}[game_config.n_predicates],  # type: ignore
