@@ -157,7 +157,10 @@ def plot_correlations_between_generalization_loss_and_score(
     save_dir: pathlib.Path = pathlib.Path("./"),
 ):
     game_config_to_generalization_loss = extract_generalization_loss(game_config_to_metric_scores)
-    fig = plt.figure(tight_layout=True)
+    fig = plt.figure(
+        figsize=(16 * len(metrics), 9),
+        tight_layout=True,
+    )
     for i, metric in enumerate(metrics):
         ax = fig.add_subplot(1, len(metrics), i + 1)
         all_metric_scores = torch.as_tensor([], dtype=torch.float)
@@ -201,7 +204,10 @@ def plot_correlations_between_scores(
     figname: Optional[str] = None,
     save_dir: pathlib.Path = pathlib.Path("./"),
 ):
-    fig = plt.figure(tight_layout=True)
+    fig = plt.figure(
+        figsize=(16 * len(metric_pairs), 9),
+        tight_layout=True,
+    )
     for i, (metric_x, metric_y) in enumerate(metric_pairs):
         ax = fig.add_subplot(1, len(metric_pairs), i + 1)
         all_metric_scores_x = torch.as_tensor([], dtype=torch.float)
@@ -244,7 +250,10 @@ def plot_comparisons_among_target_langs(
     figname: Optional[str] = None,
     save_dir: pathlib.Path = pathlib.Path("./"),
 ):
-    fig = plt.figure(tight_layout=True)
+    fig = plt.figure(
+        figsize=(16 * len(metrics), 9),
+        tight_layout=True,
+    )
     for i, metric in enumerate(metrics):
         ax = fig.add_subplot(1, len(metrics), i + 1)
 
