@@ -164,7 +164,7 @@ def metrics_of_induced_categorial_grammar(
             count_of_applied_rules = Counter(
                 itertools.chain.from_iterable(
                     parse.applied_rules
-                    for parse in trn_eval.top_score_parses
+                    for parse in tst_eval.top_score_parses
                     if parse is not None
                 )
             )
