@@ -282,7 +282,7 @@ def plot_comparisons_among_target_langs(
     fig.legend(
         lines,
         labels,
-        bbox_anchor=(0.5, -0.1),
+        bbox_to_anchor=(0.5, -0.1),
         loc="upper center",
     )
     if figname is None:
