@@ -306,7 +306,7 @@ def plot_comparisons_among_target_langs(
         labels,
         bbox_to_anchor=(0.5, -0.1),
         loc="upper center",
-        ncols=len(metrics),
+        ncol=len(metrics),
     )
     if figname is None:
         figname = "comparison_langs_metrics{}.png".format("&".join(str(m.value) for m in metrics))
