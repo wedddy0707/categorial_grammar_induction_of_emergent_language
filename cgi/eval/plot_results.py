@@ -308,6 +308,8 @@ def main(params: List[str]):
     figure_save_dir = pathlib.Path(args.figure_save_dir)
     figure_save_dir.mkdir(parents=True, exist_ok=True)
 
+    plt.rcParams["font.size"] = 24
+
     plot_correlations_between_scores(
         args.game_config_to_metric_scores,
         metric_pairs=(
