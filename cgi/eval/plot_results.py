@@ -337,12 +337,29 @@ def main(params: List[str]):
         ),
         save_dir=figure_save_dir,
     )
+    plot_correlations_between_scores(
+        args.game_config_to_metric_scores,
+        metric_pairs=(
+            (Metric.fb_ratio, Metric.topsim),
+            (Metric.fb_ratio, Metric.tre),
+        ),
+        save_dir=figure_save_dir,
+    )
     plot_correlations_between_generalization_loss_and_score(
         args.game_config_to_metric_scores,
         metrics=(
             Metric.cgf,
             Metric.cgl,
             Metric.cgt,
+        ),
+        save_dir=figure_save_dir,
+    )
+    plot_correlations_between_generalization_loss_and_score(
+        args.game_config_to_metric_scores,
+        metrics=(
+            Metric.topsim,
+            Metric.tre,
+            Metric.fb_ratio,
         ),
         save_dir=figure_save_dir,
     )
