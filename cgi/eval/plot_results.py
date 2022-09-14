@@ -1,4 +1,4 @@
-from typing import List, Dict, NamedTuple, Union, Optional, Sequence, Hashable, Any, Tuple
+from typing import List, Dict, NamedTuple, Union, Optional, Sequence, Hashable, Any, Tuple, Set
 from scipy.stats import pearsonr  # type: ignore
 from collections import defaultdict
 import argparse
@@ -259,12 +259,23 @@ def plot_comparisons_among_target_langs(
     for i, metric in enumerate(metrics):
         ax = fig.add_subplot(1, len(metrics), i + 1)
 
+        seen_n_predicates: Set[int] = set()
         lang_to_scores: "defaultdict[TargetLanguage, List[List[float]]]" = defaultdict(list)
         for target_lang in target_langs:
-            for _, metric_scores in game_config_to_metric_scores.items():
+            for game_config, metric_scores in game_config_to_metric_scores.items():
                 scores: List[Hashable] = metric_scores[metric.value][target_lang.value]
                 assert isinstance(scores, list)
-                lang_to_scores[target_lang].append([float(e) if is_defined_float(e) else 0.0 for e in scores])
+
+                if game_config.n_predicates in seen_n_predicates and target_lang == TargetLanguage.input:
+                    lang_to_scores[target_lang].append(
+                        [0.0] * len(scores)
+                    )
+                else:
+                    lang_to_scores[target_lang].append(
+                        [float(e) if is_defined_float(e) else 0.0 for e in scores]
+                    )
+
+                seen_n_predicates.add(game_config.n_predicates)
 
         bar_width = 0.2
         n_target_langs = len(target_langs)
@@ -277,7 +288,7 @@ def plot_comparisons_among_target_langs(
                 x_data + j * bar_width,
                 mean,
                 yerr=standard_error,
-                label=k.value,
+                label=str(k.value).capitalize(),
                 width=bar_width,
             )
 
@@ -295,6 +306,7 @@ def plot_comparisons_among_target_langs(
         labels,
         bbox_to_anchor=(0.5, -0.1),
         loc="upper center",
+        ncols=len(metrics),
     )
     if figname is None:
         figname = "comparison_langs_metrics{}.png".format("&".join(str(m.value) for m in metrics))
