@@ -158,7 +158,7 @@ def plot_correlations_between_generalization_loss_and_score(
 ):
     game_config_to_generalization_loss = extract_generalization_loss(game_config_to_metric_scores)
     fig = plt.figure(
-        figsize=(16 * len(metrics), 9),
+        figsize=(6.4 * len(metrics), 4.8),
         tight_layout=True,
     )
     for i, metric in enumerate(metrics):
@@ -206,7 +206,7 @@ def plot_correlations_between_scores(
     save_dir: pathlib.Path = pathlib.Path("./"),
 ):
     fig = plt.figure(
-        figsize=(16 * len(metric_pairs), 9),
+        figsize=(6.4 * len(metric_pairs), 4.8),
         tight_layout=True,
     )
     for i, (metric_x, metric_y) in enumerate(metric_pairs):
@@ -253,7 +253,7 @@ def plot_comparisons_among_target_langs(
     save_dir: pathlib.Path = pathlib.Path("./"),
 ):
     fig = plt.figure(
-        figsize=(16 * len(metrics), 9),
+        figsize=(6.4 * len(metrics), 4.8),
         tight_layout=True,
     )
     for i, metric in enumerate(metrics):
@@ -306,7 +306,7 @@ def plot_comparisons_among_target_langs(
         labels,
         bbox_to_anchor=(0.5, -0.1),
         loc="upper center",
-        ncol=len(metrics),
+        ncol=len(target_langs),
     )
     if figname is None:
         figname = "comparison_langs_metrics{}.png".format("&".join(str(m.value) for m in metrics))
@@ -327,7 +327,7 @@ def main(params: List[str]):
         metric_pairs=(
             (Metric.topsim, Metric.cgf),
             (Metric.topsim, Metric.cgl),
-            (Metric.topsim, Metric.cgt),
+            # (Metric.topsim, Metric.cgt),
         ),
         save_dir=figure_save_dir,
     )
@@ -336,7 +336,7 @@ def main(params: List[str]):
         metric_pairs=(
             (Metric.tre, Metric.cgf),
             (Metric.tre, Metric.cgl),
-            (Metric.tre, Metric.cgt),
+            # (Metric.tre, Metric.cgt),
         ),
         save_dir=figure_save_dir,
     )
@@ -345,7 +345,7 @@ def main(params: List[str]):
         metric_pairs=(
             (Metric.fb_ratio, Metric.cgf),
             (Metric.fb_ratio, Metric.cgl),
-            (Metric.fb_ratio, Metric.cgt),
+            # (Metric.fb_ratio, Metric.cgt),
         ),
         save_dir=figure_save_dir,
     )
@@ -362,7 +362,7 @@ def main(params: List[str]):
         metrics=(
             Metric.cgf,
             Metric.cgl,
-            Metric.cgt,
+            # Metric.cgt,
         ),
         save_dir=figure_save_dir,
     )
@@ -380,7 +380,7 @@ def main(params: List[str]):
         metrics=(
             Metric.cgf,
             Metric.cgl,
-            Metric.cgt,
+            # Metric.cgt,
         ),
         target_langs=(
             TargetLanguage.input,
