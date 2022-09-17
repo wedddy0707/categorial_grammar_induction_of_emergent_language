@@ -304,7 +304,7 @@ def plot_comparisons_among_target_langs(
     fig.legend(
         lines,
         labels,
-        bbox_to_anchor=(0.5, -0.05),
+        bbox_to_anchor=(0.5, 0),
         loc="upper center",
         ncol=len(target_langs),
     )
