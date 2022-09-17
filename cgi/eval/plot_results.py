@@ -185,8 +185,8 @@ def plot_correlations_between_generalization_loss_and_score(
         pearson_corr = pearsonr(all_metric_scores, all_generalization_losses)
         # ax.legend()
         ax.set_xlabel(metric.value)
-        ax.set_ylabel("Generalization Loss")
-        ax.set_title(f"Pearson $r={pearson_corr[0]:.5f}$ ($p={pearson_corr[1]:.5f}$)")
+        ax.set_ylabel("Test Loss")
+        ax.set_title(f"Pearson $\\rho={pearson_corr[0]:.2f}$ ($p={pearson_corr[1]:.2f}$)")
     if figname is None:
         figname = "relationsToGeneralizationLoss_metrics{}_lang{}.png".format(
             "&".join(str(m.value) for m in metrics),
@@ -235,7 +235,7 @@ def plot_correlations_between_scores(
         # ax.legend()
         ax.set_xlabel(metric_x.value)
         ax.set_ylabel(metric_y.value)
-        ax.set_title(f"Pearson $r={pearson_corr[0]:.5f}$ ($p={pearson_corr[1]:.5f}$)")
+        ax.set_title(f"Pearson $\\rho={pearson_corr[0]:.2f}$ ($p={pearson_corr[1]:.2f}$)")
     if figname is None:
         figname = "correlations_metricPairs{}_lang{}.png".format(
             "&".join("(" + str(pair[0].value) + "," + str(pair[1].value) + ")" for pair in metric_pairs),
@@ -293,7 +293,7 @@ def plot_comparisons_among_target_langs(
             )
 
         ax.set_xlabel("$(\\mathcal{{I}},L,|\\mathcal{{A}}|)$")
-        ax.set_ylabel(str(metric.value).capitalize())
+        ax.set_ylabel(str(metric.value))
         ax.set_xticks(x_data + (bar_width * n_target_langs / 2))
         ax.set_xticklabels(
             [repr(x) for x in game_config_to_metric_scores.keys()],
@@ -304,7 +304,7 @@ def plot_comparisons_among_target_langs(
     fig.legend(
         lines,
         labels,
-        bbox_to_anchor=(0.5, -0.1),
+        bbox_to_anchor=(0.5, -0.05),
         loc="upper center",
         ncol=len(target_langs),
     )
@@ -320,7 +320,7 @@ def main(params: List[str]):
     figure_save_dir = pathlib.Path(args.figure_save_dir)
     figure_save_dir.mkdir(parents=True, exist_ok=True)
 
-    plt.rcParams["font.size"] = 24
+    plt.rcParams["font.size"] = 18
 
     plot_correlations_between_scores(
         args.game_config_to_metric_scores,
