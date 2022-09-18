@@ -371,23 +371,26 @@ def main(params: List[str]):
         ),
         save_dir=figure_save_dir,
     )
-    plot_correlations_between_scores(
-        args.game_config_to_metric_scores,
-        metric_pairs=(
-            (Metric.fb_ratio, Metric.cgf),
-            (Metric.fb_ratio, Metric.cgl),
-            # (Metric.fb_ratio, Metric.cgt),
-        ),
-        save_dir=figure_save_dir,
-    )
-    plot_correlations_between_scores(
-        args.game_config_to_metric_scores,
-        metric_pairs=(
-            (Metric.fb_ratio, Metric.topsim),
-            (Metric.fb_ratio, Metric.tre),
-        ),
-        save_dir=figure_save_dir,
-    )
+    try:
+        plot_correlations_between_scores(
+            args.game_config_to_metric_scores,
+            metric_pairs=(
+                (Metric.fb_ratio, Metric.cgf),
+                (Metric.fb_ratio, Metric.cgl),
+                # (Metric.fb_ratio, Metric.cgt),
+            ),
+            save_dir=figure_save_dir,
+        )
+        plot_correlations_between_scores(
+            args.game_config_to_metric_scores,
+            metric_pairs=(
+                (Metric.fb_ratio, Metric.topsim),
+                (Metric.fb_ratio, Metric.tre),
+            ),
+            save_dir=figure_save_dir,
+        )
+    except Exception:
+        pass
     plot_correlations_between_generalization_loss_and_score(
         args.game_config_to_metric_scores,
         metrics=(
@@ -397,15 +400,18 @@ def main(params: List[str]):
         ),
         save_dir=figure_save_dir,
     )
-    plot_correlations_between_generalization_loss_and_score(
-        args.game_config_to_metric_scores,
-        metrics=(
-            Metric.topsim,
-            Metric.tre,
-            Metric.fb_ratio,
-        ),
-        save_dir=figure_save_dir,
-    )
+    try:
+        plot_correlations_between_generalization_loss_and_score(
+            args.game_config_to_metric_scores,
+            metrics=(
+                Metric.topsim,
+                Metric.tre,
+                Metric.fb_ratio,
+            ),
+            save_dir=figure_save_dir,
+        )
+    except Exception:
+        pass
     plot_comparisons_among_target_langs(
         args.game_config_to_metric_scores,
         metrics=(
