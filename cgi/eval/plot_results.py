@@ -327,7 +327,7 @@ def report_scores(
         scores: List[float] = metric_scores[metric.value][target_lang.value]
         assert isinstance(scores, list)
 
-        scores: List[float] = [float(s) if is_defined_float(e) else 0.0 for s in scores]
+        scores: List[float] = [float(s) if is_defined_float(s) else 0.0 for s in scores]
 
         mean = np.array(scores, dtype=np.float_)
         standard_error = np.std(scores, ddof=1) / np.sqrt(len(scores))
