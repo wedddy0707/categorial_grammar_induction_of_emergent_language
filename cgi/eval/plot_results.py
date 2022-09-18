@@ -332,8 +332,15 @@ def report_scores(
         mean = np.mean(scores, dtype=np.float_)
         standard_error = np.std(scores, ddof=1) / np.sqrt(len(scores))
 
-        print("{}, {}, {}".format(game_config, mean, standard_error))
-
+        print(
+            "$\\mathcal{{D}}_{{{}}}$ & {} & {: >2} & {:.2f} $\\pm {:.2f}$".format(
+                game_config.n_predicates,
+                game_config.max_len,
+                game_config.vocab_size,
+                mean,
+                standard_error,
+            )
+        )
     print()
     print()
 
