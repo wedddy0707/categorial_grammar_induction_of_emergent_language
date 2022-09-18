@@ -314,6 +314,30 @@ def plot_comparisons_among_target_langs(
     fig.savefig((save_dir / figname).as_posix(), bbox_inches="tight")
 
 
+def report_scores(
+    game_config_to_metric_scores: Dict[GameConfig, NestedDict],
+    metric: Metric,
+    target_lang: TargetLanguage = TargetLanguage.emergent,
+):
+    print()
+    print()
+    print("Report {} score for {} lang:".format(metric, target_lang))
+    print("game config, mean, standard error")
+    for game_config, metric_scores in game_config_to_metric_scores.items():
+        scores: List[float] = metric_scores[metric.value][target_lang.value]
+        assert isinstance(scores, list)
+
+        scores: List[float] = [float(s) if is_defined_float(e) else 0.0 for s in scores]
+
+        mean = np.array(scores, dtype=np.float_)
+        standard_error = np.std(scores, ddof=1) / np.sqrt(len(scores))
+
+        print("{}, {}, {}".format(game_config, mean, standard_error))
+
+    print()
+    print()
+
+
 def main(params: List[str]):
     args = get_params(params)
 
@@ -390,6 +414,10 @@ def main(params: List[str]):
         ),
         save_dir=figure_save_dir,
     )
+    report_scores(args.game_config_to_metric_scores, Metric.cgf)
+    report_scores(args.game_config_to_metric_scores, Metric.cgl)
+    report_scores(args.game_config_to_metric_scores, Metric.topsim)
+    report_scores(args.game_config_to_metric_scores, Metric.tre)
 
 
 if __name__ == "__main__":
